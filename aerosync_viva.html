@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AeroSync — Viva Preparation Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #07090f;
+    --navy2: #0d1120;
+    --navy3: #131828;
+    --panel: #161c2e;
+    --border: rgba(99,179,255,0.1);
+    --border2: rgba(99,179,255,0.18);
+    --cyan: #00e5ff;
+    --cyan-dim: rgba(0,229,255,0.12);
+    --cyan-mid: rgba(0,229,255,0.22);
+    --amber: #ffb800;
+    --amber-dim: rgba(255,184,0,0.12);
+    --teal: #00ffb3;
+    --teal-dim: rgba(0,255,179,0.1);
+    --purple: #b47fff;
+    --purple-dim: rgba(180,127,255,0.12);
+    --coral: #ff6b6b;
+    --coral-dim: rgba(255,107,107,0.12);
+    --text-primary: #eaf0ff;
+    --text-secondary: #8899bb;
+    --text-muted: #4a5570;
+    --mono: 'DM Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+    --display: 'Syne', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--navy);
+    color: var(--text-primary);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* grid noise texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.02) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 3rem 2rem 5rem;
+  }
+
+  /* ── Header ── */
+  .header {
+    text-align: center;
+    margin-bottom: 3.5rem;
+    padding-bottom: 2.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .header-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--cyan);
+    background: var(--cyan-dim);
+    border: 1px solid rgba(0,229,255,0.2);
+    padding: 4px 14px;
+    border-radius: 2px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 1.2rem;
+  }
+
+  .header-badge::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--cyan);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+
+  h1 {
+    font-family: var(--display);
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+    line-height: 1.1;
+    margin-bottom: 0.75rem;
+  }
+
+  h1 span { color: var(--cyan); }
+
+  .header-sub {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-family: var(--mono);
+    letter-spacing: 0.02em;
+  }
+
+  .stats-row {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-top: 1.5rem;
+  }
+
+  .stat {
+    text-align: center;
+  }
+
+  .stat-num {
+    font-family: var(--display);
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--cyan);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 3px;
+  }
+
+  /* ── Category sections ── */
+  .category {
+    margin-bottom: 2.5rem;
+  }
+
+  .cat-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 1rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .cat-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .cat-title {
+    font-family: var(--display);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+
+  .cat-count {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-left: auto;
+  }
+
+  /* ── Question cards ── */
+  .q-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    margin-bottom: 10px;
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.15s;
+  }
+
+  .q-card:hover {
+    border-color: var(--border2);
+    transform: translateX(2px);
+  }
+
+  .q-card.open {
+    border-color: rgba(0,229,255,0.3);
+  }
+
+  .q-trigger {
+    width: 100%;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    text-align: left;
+    color: inherit;
+  }
+
+  .q-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    min-width: 26px;
+    height: 26px;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .q-text {
+    font-family: var(--display);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.4;
+    flex: 1;
+  }
+
+  .q-arrow {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-left: 8px;
+    margin-top: 2px;
+    flex-shrink: 0;
+    transition: transform 0.2s;
+  }
+
+  .q-card.open .q-arrow { transform: rotate(180deg); }
+
+  .q-body {
+    display: none;
+    padding: 0 1.25rem 1.25rem 3.25rem;
+  }
+
+  .q-card.open .q-body { display: block; }
+
+  .q-divider {
+    height: 1px;
+    background: var(--border);
+    margin-bottom: 1rem;
+  }
+
+  .q-answer {
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    line-height: 1.75;
+  }
+
+  .q-answer code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: rgba(0,229,255,0.06);
+    border: 1px solid rgba(0,229,255,0.15);
+    padding: 1px 6px;
+    border-radius: 2px;
+    color: var(--cyan);
+  }
+
+  .q-answer strong {
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  .tip-box {
+    margin-top: 1rem;
+    padding: 0.75rem 1rem;
+    background: rgba(255,184,0,0.06);
+    border-left: 2px solid var(--amber);
+    border-radius: 0 2px 2px 0;
+    font-size: 12.5px;
+    color: rgba(255,184,0,0.8);
+    font-family: var(--mono);
+  }
+
+  .tip-box::before {
+    content: 'viva tip — ';
+    font-weight: 500;
+    color: var(--amber);
+  }
+
+  /* ── Category color themes ── */
+  .cat-core .cat-dot { background: var(--cyan); }
+  .cat-core .cat-title { color: var(--cyan); }
+  .cat-core .q-num { background: var(--cyan-dim); color: var(--cyan); border: 1px solid rgba(0,229,255,0.2); }
+  .cat-core .q-card.open { border-color: rgba(0,229,255,0.3); }
+
+  .cat-tech .cat-dot { background: var(--teal); }
+  .cat-tech .cat-title { color: var(--teal); }
+  .cat-tech .q-num { background: var(--teal-dim); color: var(--teal); border: 1px solid rgba(0,255,179,0.2); }
+  .cat-tech .q-card.open { border-color: rgba(0,255,179,0.3); }
+
+  .cat-arch .cat-dot { background: var(--purple); }
+  .cat-arch .cat-title { color: var(--purple); }
+  .cat-arch .q-num { background: var(--purple-dim); color: var(--purple); border: 1px solid rgba(180,127,255,0.2); }
+  .cat-arch .q-card.open { border-color: rgba(180,127,255,0.3); }
+
+  .cat-frontend .cat-dot { background: var(--amber); }
+  .cat-frontend .cat-title { color: var(--amber); }
+  .cat-frontend .q-num { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(255,184,0,0.2); }
+  .cat-frontend .q-card.open { border-color: rgba(255,184,0,0.3); }
+
+  .cat-devops .cat-dot { background: var(--coral); }
+  .cat-devops .cat-title { color: var(--coral); }
+  .cat-devops .q-num { background: var(--coral-dim); color: var(--coral); border: 1px solid rgba(255,107,107,0.2); }
+  .cat-devops .q-card.open { border-color: rgba(255,107,107,0.3); }
+
+  /* ── Controls ── */
+  .controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 6px 16px;
+    border-radius: 2px;
+    border: 1px solid var(--border2);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    transition: all 0.15s;
+  }
+
+  .btn:hover { background: var(--cyan-dim); color: var(--cyan); border-color: rgba(0,229,255,0.3); }
+  .btn.active { background: var(--cyan-dim); color: var(--cyan); border-color: rgba(0,229,255,0.4); }
+
+  /* ── Progress bar ── */
+  .progress-wrap {
+    margin-bottom: 2rem;
+    padding: 1rem 1.25rem;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .progress-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+
+  .progress-bar-outer {
+    flex: 1;
+    height: 4px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-bar-inner {
+    height: 100%;
+    background: var(--cyan);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+    width: 0%;
+  }
+
+  .progress-count {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--cyan);
+    white-space: nowrap;
+    min-width: 40px;
+    text-align: right;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    text-align: center;
+    margin-top: 4rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+  }
+
+  .footer a { color: var(--cyan); text-decoration: none; }
+
+  /* ── Print ── */
+  @media print {
+    body { background: #fff; color: #111; }
+    body::before { display: none; }
+    .controls, .progress-wrap { display: none; }
+    .q-card { border: 1px solid #ccc; break-inside: avoid; }
+    .q-body { display: block !important; }
+    .q-arrow { display: none; }
+    .q-answer { color: #333; }
+    .q-answer code { background: #f0f0f0; color: #0066cc; border: 1px solid #ccc; }
+    .tip-box { background: #fff8e1; color: #886600; border-left: 2px solid #ffb800; }
+    .cat-title, .q-num { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    h1 { color: #07090f; }
+    h1 span { color: #0066cc; }
+  }
+
+  @media (max-width: 600px) {
+    .container { padding: 2rem 1rem 4rem; }
+    h1 { font-size: 1.8rem; }
+    .stats-row { gap: 1.2rem; }
+    .stat-num { font-size: 1.4rem; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-badge">aerosync — viva prep</div>
+    <h1>✈ <span>AeroSync</span> Viva Questions</h1>
+    <p class="header-sub">real-time airline &amp; cargo scheduling platform</p>
+    <div class="stats-row">
+      <div class="stat"><div class="stat-num">20</div><div class="stat-label">Questions</div></div>
+      <div class="stat"><div class="stat-num">5</div><div class="stat-label">Categories</div></div>
+      <div class="stat"><div class="stat-num" id="opened-count">0</div><div class="stat-label">Reviewed</div></div>
+    </div>
+  </header>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button class="btn" onclick="expandAll()">Expand all</button>
+    <button class="btn" onclick="collapseAll()">Collapse all</button>
+    <button class="btn" onclick="window.print()">Print / save PDF</button>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-wrap">
+    <span class="progress-label">Progress</span>
+    <div class="progress-bar-outer"><div class="progress-bar-inner" id="progress-bar"></div></div>
+    <span class="progress-count" id="progress-text">0 / 20</span>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       CATEGORY 1 — PROBLEM & VISION
+  ══════════════════════════════════════════ -->
+  <section class="category cat-core">
+    <div class="cat-header">
+      <div class="cat-dot"></div>
+      <span class="cat-title">Problem &amp; Vision</span>
+      <span class="cat-count">Q1 – Q3</span>
+    </div>
+
+    <div class="q-card" data-id="1">
+      <button class="q-trigger" onclick="toggle(this)">
+        <span class="q-num">01</span>
+        <span class="q-text">What problem does AeroSync solve and why do existing solutions fall short?</span>
+        <span class="q-arrow">▼</span>
+      </button>
+      <div class="q-body">
+        <div class="q-divider"></div>
+        <div class="q-answer">
+          Existing airline scheduling systems like <strong>Sabre</strong> and <strong>Amadeus</strong> are monolithic, batch-oriented, and siloed — flight scheduling and cargo management live in separate systems with no real-time sync. AeroSync addresses this by unifying both into a single <strong>WebSocket-driven platform</strong> with live disruption awareness.<br><br>
+          The key gap we fill is <strong>real-time collaborative visibility</strong>: any gate change or cargo overload is broadcast to all ops clients within 200ms, eliminating the phone-call-and-spreadsheet workflows still common in regional airlines.
+        </div>
+        <div class="tip-box">mention the 200ms latency target and the "single pane of glass" concept — examiners love concrete metrics</div>
+      </div>
+    </div>
+
+    <div class="q-card" data-id="2">
+      <button class="q-trigger" onclick="toggle(this)">
+        <span class="q-num">02</span>
+        <span class="q-text">Who are the target users and what are their specific pain points?</span>
+        <span class="q-arrow">▼</span>
+      </button>
+      <div class="q-body">
+        <div class="q-divider"></div>
+        <div class="q-answer">
+          Three primary personas:<br><br>
+          <strong>1. Flight Dispatchers</strong> — need sub-second awareness of gate changes and delays across 20+ concurrent flights.<br>
+          <strong>2. Cargo Managers</strong> — need real-time capacity utilization to prevent overloading and revenue loss from empty cargo slots.<br>
+          <strong>3. Operations Leads</strong> — need to simulate disruption scenarios before they happen to pre-position resources.<br><br>
+          All three currently rely on disconnected tools: separate OMS, CMS, and weather dashboards with no unified view.
+        </div>
+        <div class="tip-box">frame each persona around a "job to be done" — what they're trying to accomplish, not just who they are</div>
+      </div>
+    </div>
+
+    <div class="q-card" data-id="3">
+      <button class="q-trigger" onclick="toggle(this)">
+        <span class="q-num">03</span>
+        <span class="q-text">How is AeroSync better than existing tools like FlightAware or Amadeus?</span>
+        <span class="q-arrow">▼</span>
+      </button>
+      <div class="q-body">
+        <div class="q-divider"></div>
+        <div class="q-answer">
+          <strong>FlightAware</strong> is a tracking tool, not a scheduling tool — it shows you where aircraft are, not how to optimise their schedules. <strong>Amadeus</strong> is enterprise-grade but costs millions in licensing, requires months of integration, and has no AI suggestion layer.<br><br>
+          AeroSync differentiates on three axes:<br>
+          <strong>1.</strong> Real-time WebSocket architecture vs batch polling<br>
+          <strong>2.</strong> Integrated AI recommendations with explainability ("Why this suggestion?")<br>
+          <strong>3.</strong> Disruption simulation — no competitor lets you inject a hypothetical event and immediately see cascade impact across your entire network.
+        </div>
+        <div class="tip-box">the disruption simulator is your strongest differentiator — no existing tool has this feature</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       CATEGORY 2 — TECH STACK
+  ══════════════════════════════════════════ -->
+  <section class="category cat-tech">
+    <div class="cat-header">
+      <div class="cat-dot"></div>
+      <span class="cat-title">Tech Stack</span>
+      <span class="cat-count">Q4 – Q8</span>
+    </div>
+
+    <div class="q-card" data-id="4">
+      <button class="q-trigger" onclick="toggle(this)">
+        <span class="q-num">04</span>
+        <span class="q-text">Why React 18 + Vite over Next.js or Create React App?</span>
+        <span class="q-arrow">▼</span>
+      </button>
+      <div class="q-body">
+        <div class="q-divider"></div>
+        <div class="q-answer">
+          <strong>Create React App</strong> is deprecated and uses Webpack which is significantly slower. <strong>Next.js</strong> adds server-side rendering complexity we don't need — AeroSync is a real-time ops dashboard, not a content site, so SSR provides no SEO benefit.<br><br>
+          <strong>Vite</strong> uses ESBuild for bundling, giving sub-300ms hot module replacement during development. <strong>React 18</strong> specifically gives us concurrent rendering features — <code>useTransition</code> and <code>Suspense</code> — which let us update the Gantt board without blocking WebSocket renders, keeping the UI responsive under high event load.
+        </div>
+        <div class="tip-box">key phrase: "concurrent rendering" — shows you understand React 18's architecture, not just its API</div>
+      </div>
+    </div>
+
+    <div class="q-card" data-id="5">
+      <button class="q-trigger" onclick="toggle(this)">
+        <span class="q-num">05</span>
+        <span class="q-text">Why Socket.IO over raw WebSockets or Server-Sent Events?</span>
+        <span class="q-arrow">▼</span>
+      </button>
+      <div class="q-body">
+        <div class="q-divider"></div>
+        <div class="q-answer">
+          Raw WebSockets require manual implementation of reconnection logic, room management, and fallback transports. <strong>Socket.IO v4</strong> provides automatic reconnection with exponential backoff, named event namespaces (so <code>flight:updated</code> and <code>cargo:updated</code> don't collide), and graceful HTTP long-polling fallback for restrictive corporate networks.<br><br>
+          <strong>Server-Sent Events</strong> are unidirectional — the client can't push disruption injection events back to the server. Socket.IO's room model also lets us broadcast only to clients viewing a specific airport hub, reducing unnecessary traffic.
+        </div>
+        <div class="tip-box">SSEs being unidirectional is a killer fact — it shows you understand the protocol, not just the library</div>
+      </div>
+    </div>
+
+    <div class="q-card" data-id="6">
+      <button class="q-trigger" onclick="toggle(this)">
+        <span class="q-num">06</span>
+        <span class="q-text">Why FastAPI for the AI service instead of Flask or Django?</span>
+        <span class="q-arrow">▼</span>
+      </button>
+      <div class="q-body">
+        <div class="q-divider"></div>
+        <div class="q-answer">
+          Flask is synchronous by default — each prediction request blocks the thread. <strong>FastAPI</strong> is built on Starlette and uses Python's <code>async/await</code> natively, meaning it can handle multiple concurrent prediction requests without threading overhead.<br><br>
+          FastAPI also auto-generates <strong>OpenAPI docs</strong> at <code>/docs</code>, invaluable for testing the delay prediction endpoint. Django is a full-stack framework — far too heavy for a microservice that just serves ML model inference. FastAPI with Uvicorn benchmarks at roughly <strong>3-4x the throughput</strong> of equivalent Flask apps.
+        </div>
+        <div class="tip-box">mention ASGI vs WSGI — FastAPI uses ASGI (async), Flask uses WSGI (sync) — this is the core architectural difference</div>
+      </div>
+    </div>
+
+    <div class="q-card" data-id="7">
+      <button class="q-trigger" onclick="toggle(this)">
+        <span class="q-num">07</span>
+        <span class="q-text">Why CesiumJS for the globe instead of Google Maps or Leaflet?</span>
+        <span class="q-arrow">▼</span>
+      </button>
+      <div class="q-body">
+        <div class="q-divider"></div>
+        <div class="q-answer">
+          Leaflet and Google Maps are <strong>2D map libraries</strong> — they can't render a rotatable 3D globe with flight arcs as animated 3D polylines. <strong>CesiumJS</strong> is purpose-built for geospatial 3D visualization using WebGL, which means flight paths are rendered as glowing arcs with accurate <strong>great-circle routing</strong> (the actual shortest path between two airports), not straight lines on a flat projection.<br><br>
+          It also supports time-dynamic data natively through its <strong>CZML format</strong>, which aligns perfectly with our WebSocket flight position updates.
+        </div>
+        <div class="tip-box">great-circle routing is a technically impressive detail — it shows you know the geography behind aviation</div>
+      </div>
+    </div>
+
+    <div class="q-card" data-id="8">
+      <button class="q-trigger" onclick="toggle(this)">
+        <span class="q-num">08</span>
+        <span class="q-text">What ML algorithm powers the delay prediction and why?</span>
+        <span class="q-arrow">▼</span>
+      </button>
+      <div class="q-body">
+        <div class="q-divider"></div>
+        <div class="q-answer">
+          We use a <strong>Random Forest classifier</strong> from scikit-learn. Random Forests are an ensemble method — they train multiple decision trees on random subsets of features and aggregate predictions, which reduces overfitting compared to a single decision tree.<br><br>
+          Input features: scheduled departure time, origin/destination airport pair, day of week, historical delay rate for that route, and a weather severity score. Random Forest handles the mix of <strong>categorical</strong> (airport codes) and <strong>numerical</strong> (weather score) features well without extensive preprocessing. It also provides <strong>feature importances</strong>, which power the "Why this suggestion?" explainability panel in the UI.
+        </div>
+        <div class="tip-box">always mention explainability (XAI) — Random Forest feature importance is why you chose it over a black-box neural network</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       CATEGORY 3 — ARCHITECTURE & CODE
+  ══════════════════════════════════════════ -->
+  <section class="category cat-arch">
+    <div class="cat-header">
+      <div class="cat-dot"></div>
+      <span class="cat-title">Architecture &amp; Code</span>
+      <span class="cat-count">Q9 – Q12</span>
+    </div>
+
+    <div class="q-card" data-id="9">
+      <button class="q-trigger" onclick="toggle(this)">
+        <span class="q-num">09</span>
+        <span class="q-text">Explain the overall system architecture and how the three services communicate.</span>
+        <span class="q-arrow">▼</span>
+      </button>
+      <div class="q-body">
+        <div class="q-divider"></div>
+        <div class="q-answer">
+          AeroSync is a <strong>three-tier microservice architecture</strong>. The React frontend communicates with the Node.js backend via two channels: <strong>REST (HTTP)</strong> for CRUD operations like fetching flight lists, and <strong>WebSocket</strong> for real-time push events.<br><br>
+          The Node.js backend communicates with the Python FastAPI AI service via internal HTTP — when a dispatcher requests a schedule suggestion, Node proxies the request to FastAPI's <code>POST /predict/delay</code> endpoint. The backend runs a <code>setInterval</code> every 3-5 seconds that mutates mock flight state and emits <code>flight:updated</code> events to all Socket.IO clients, simulating a live data feed.
+        </div>
+        <div class="tip-box">draw this on the whiteboard if asked — Client → Node (REST + WS) → FastAPI (HTTP) is the communication triangle</div>
+      </div>
+    </div>
+
+    <div class="q-card" data-id="10">
+      <button class="q-trigger" onclick="toggle(this)">
+        <span class="q-num">10</span>
+        <span class="q-text">Walk through a flight status update from server to UI end-to-end.</span>
+        <span class="q-arrow">▼</span>
+      </button>
+      <div class="q-body">
+        <div class="q-divider"></div>
+        <div class="q-answer">
+          <strong>1. Server:</strong> <code>flightSocket.js</code> holds a <code>setInterval</code> that picks a random flight, mutates its status (e.g. on-time → delayed), and calls <code>io.emit('flight:updated', payload)</code>.<br><br>
+          <strong>2. Client hook:</strong> The <code>useWebSocket</code> custom hook registers a listener: <code>socket.on('flight:updated', handler)</code>.<br><br>
+          <strong>3. State update:</strong> The handler dispatches to global state (Context/Zustand), updating the matching flight object.<br><br>
+          <strong>4. Re-render:</strong> All subscribed components — Globe arcs, Gantt blocks, HUD stats — re-render simultaneously in the same React render cycle, giving true multi-panel synchronization.
+        </div>
+        <div class="tip-box">emphasise "same render cycle" — this is why WebSockets beat polling: all panels update atomically, not one by one</div>
+      </div>
+    </div>
+
+    <div class="q-card" data-id="11">
+      <button class="q-trigger" onclick="toggle(this)">
+        <span class="q-num">11</span>
+        <span class="q-text">Why a monorepo and how is the project folder structured?</span>
+        <span class="q-arrow">▼</span>
+      </button>
+      <div class="q-body">
+        <div class="q-divider"></div>
+        <div class="q-answer">
+          The repo uses a <strong>monorepo</strong> with three top-level directories: <code>/frontend</code>, <code>/backend</code>, and <code>/ai-service</code>. Monorepo was chosen because a single PR can include a frontend feature, the backend endpoint it calls, and the AI model change it depends on — <strong>keeping changes atomic and reviewable together</strong>.<br><br>
+          Each service has its own <code>package.json</code> or <code>requirements.txt</code> so they can be deployed independently. The <code>/docs</code> folder contains the PRD and API contracts, which serve as the source of truth for all inter-service communication.
+        </div>
+        <div class="tip-box">contrast with polyrepo — monorepo trades deployment independence for easier cross-service refactoring</div>
+      </div>
+    </div>
+
+    <div class="q-card" data-id="12">
+      <button class="q-trigger" onclick="toggle(this)">
+        <span class="q-num">12</span>
+        <span class="q-text">How does the Disruption Simulator work technically?</span>
+        <span class="q-arrow">▼</span>
+      </button>
+      <div class="q-body">
+        <div class="q-divider"></div>
+        <div class="q-answer">
+          The user selects a disruption type and airport, then clicks "Inject Disruption". The frontend emits a <code>disruption:inject</code> WebSocket event. The server handler queries all flights departing from/arriving at the affected airport within the next 4 hours, applies a <strong>delay multiplier</strong> based on severity (1–10 scale), and emits a <code>disruption:cascade</code> event back to all clients.<br><br>
+          The payload contains an array of affected flight IDs with estimated delay deltas. The React cascade visualization renders this as a <strong>D3-powered radial diagram</strong> where affected flights radiate outward from the disruption point with line thickness proportional to delay magnitude.
+        </div>
+        <div class="tip-box">the D3 radial diagram is a strong technical detail — mention that line thickness is data-encoded (not decorative)</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       CATEGORY 4 — FRONTEND & UX
+  ══════════════════════════════════════════ -->
+  <section class="category cat-frontend">
+    <div class="cat-header">
+      <div class="cat-dot"></div>
+      <span class="cat-title">Frontend &amp; UX</span>
+      <span class="cat-count">Q13 – Q16</span>
+    </div>
+
+    <div class="q-card" data-id="13">
+      <button class="q-trigger" onclick="toggle(this)">
+        <span class="q-num">13</span>
+        <span class="q-text">How did you implement the drag-and-drop Gantt scheduling board?</span>
+        <span class="q-arrow">▼</span>
+      </button>
+      <div class="q-body">
+        <div class="q-divider"></div>
+        <div class="q-answer">
+          The Gantt board uses the <strong>HTML5 Drag and Drop API</strong>. Each flight block is a <code>div</code> with <code>draggable="true"</code> and <code>onDragStart</code> handler that stores the flight ID and current time slot in the drag event's <strong>data transfer object</strong>.<br><br>
+          The time slot cells are drop targets with <code>onDragOver</code> (which calls <code>preventDefault()</code> to allow dropping) and <code>onDrop</code> handlers. On drop, a <code>PATCH /api/flights/:id</code> REST call updates the schedule, and a <code>schedule:update</code> WebSocket event is emitted so all other connected dispatchers see the change immediately. <strong>Framer Motion</strong> handles the visual snap animation.
+        </div>
+        <div class="tip-box">remember: onDragOver must call preventDefault() — without it the drop event never fires. This is a classic gotcha</div>
+      </div>
+    </div>
+
+    <div class="q-card" data-id="14">
+      <button class="q-trigger" onclick="toggle(this)">
+        <span class="q-num">14</span>
+        <span class="q-text">What is glassmorphism and why did you use it for the UI?</span>
+        <span class="q-arrow">▼</span>
+      </button>
+      <div class="q-body">
+        <div class="q-divider"></div>
+        <div class="q-answer">
+          <strong>Glassmorphism</strong> is a design aesthetic using semi-transparent panels with <code>backdrop-filter: blur()</code> to create a frosted glass effect, layered over darker or more complex backgrounds.<br><br>
+          We chose it because aviation operations interfaces are <strong>data-dense</strong> — glassmorphism panels allow the 3D globe to remain visible beneath overlaid data panels, maintaining spatial context while reading flight data. CSS implementation: <code>background: rgba(10,15,30,0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08)</code>. The dark navy (#0A0F1E) with cyan (#00E5FF) accents is deliberately inspired by <strong>radar and mission control</strong> interfaces.
+        </div>
+        <div class="tip-box">link the design choice to a functional reason — "maintains spatial context" is much stronger than "it looks cool"</div>
+      </div>
+    </div>
+
+    <div class="q-card" data-id="15">
+      <button class="q-trigger" onclick="toggle(this)">
+        <span class="q-num">15</span>
+        <span class="q-text">How did you manage state across four screens with real-time data?</span>
+        <span class="q-arrow">▼</span>
+      </button>
+      <div class="q-body">
+        <div class="q-divider"></div>
+        <div class="q-answer">
+          Global flight state lives in a <strong>React Context</strong> (or Zustand store) at the app root level. The <code>useWebSocket</code> hook connects to Socket.IO and dispatches incoming events as state actions — a <code>flight:updated</code> event triggers a state update that replaces the matching flight object in the flights array.<br><br>
+          All four screens subscribe to this store via custom hooks like <code>useFlightData()</code>. <strong>Local UI state</strong> (filters, drag state, selected items) stays in component-level <code>useState</code> — only shared cross-screen data lives in global state, keeping the architecture clean and avoiding unnecessary re-renders.
+        </div>
+        <div class="tip-box">the key insight: global state = shared data, local state = UI concerns. This separation is what makes the app performant</div>
+      </div>
+    </div>
+
+    <div class="q-card" data-id="16">
+      <button class="q-trigger" onclick="toggle(this)">
+        <span class="q-num">16</span>
+        <span class="q-text">How does the AI suggestions panel implement explainability?</span>
+        <span class="q-arrow">▼</span>
+      </button>
+      <div class="q-body">
+        <div class="q-divider"></div>
+        <div class="q-answer">
+          When the Scheduling Board mounts, it sends <code>POST /api/predict/delay</code> for each flight in view. FastAPI runs the Random Forest model and returns a delay probability and suggested action.<br><br>
+          Each suggestion card shows: the recommendation text, a <strong>confidence score bar</strong> (CSS width proportional to the 0–1 probability), and a "Why?" toggle that expands to show the <strong>top 3 feature importances</strong> from the model (e.g. "Weather score: 0.72 at LHR contributed 41% to this prediction").<br><br>
+          This is <strong>Explainable AI (XAI)</strong> — critical for any system where humans must trust and act on machine recommendations.
+        </div>
+        <div class="tip-box">XAI is a hot topic — say "we used Random Forest specifically because it gives us interpretable feature importances, unlike a neural network"</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       CATEGORY 5 — DEPLOYMENT & SCALABILITY
+  ══════════════════════════════════════════ -->
+  <section class="category cat-devops">
+    <div class="cat-header">
+      <div class="cat-dot"></div>
+      <span class="cat-title">Deployment &amp; Scalability</span>
+      <span class="cat-count">Q17 – Q20</span>
+    </div>
+
+    <div class="q-card" data-id="17">
+      <button class="q-trigger" onclick="toggle(this)">
+        <span class="q-num">17</span>
+        <span class="q-text">What were the Render deployment challenges and how did you fix them?</span>
+        <span class="q-arrow">▼</span>
+      </button>
+      <div class="q-body">
+        <div class="q-divider"></div>
+        <div class="q-answer">
+          Three specific issues we encountered and resolved:<br><br>
+          <strong>1. <code>package.json not found</code></strong> — Render was looking in the repo root, but the frontend is in <code>/frontend</code>. Fixed by setting Root Directory to <code>frontend</code> in Render settings.<br><br>
+          <strong>2. <code>vite: not found</code> (exit 127)</strong> — Render skips devDependencies in production installs. Fixed by moving Vite from <code>devDependencies</code> to <code>dependencies</code>.<br><br>
+          <strong>3. <code>Blocked request</code> error</strong> — Vite's preview server has an allowedHosts security check. Fixed by adding <code>preview.allowedHosts: ['aerosync-td50.onrender.com']</code> to <code>vite.config.js</code>.
+        </div>
+        <div class="tip-box">these are real bugs you actually debugged — own them confidently, they show practical DevOps experience</div>
+      </div>
+    </div>
+
+    <div class="q-card" data-id="18">
+      <button class="q-trigger" onclick="toggle(this)">
+        <span class="q-num">18</span>
+        <span class="q-text">How would you scale AeroSync for a real airline with thousands of concurrent users?</span>
+        <span class="q-arrow">▼</span>
+      </button>
+      <div class="q-body">
+        <div class="q-divider"></div>
+        <div class="q-answer">
+          Four scaling steps:<br><br>
+          <strong>1. Database:</strong> Replace mock data with PostgreSQL + indexed queries on flight status and departure time.<br>
+          <strong>2. Redis adapter:</strong> Add Redis as a Socket.IO adapter — allows multiple Node.js instances to share WebSocket state, enabling <strong>horizontal scaling</strong> behind a load balancer.<br>
+          <strong>3. AI scaling:</strong> Move FastAPI to a dedicated GPU instance or use a managed ML endpoint (AWS SageMaker / Google Vertex AI).<br>
+          <strong>4. CDN:</strong> Cloudflare in front of the static React bundle.<br><br>
+          WebSocket connections are the hardest to scale — each persistent connection consumes server resources, so <strong>Redis pub/sub</strong> is the critical architectural addition.
+        </div>
+        <div class="tip-box">Redis as Socket.IO adapter is the power answer here — it's the specific solution for scaling stateful WebSocket servers</div>
+      </div>
+    </div>
+
+    <div class="q-card" data-id="19">
+      <button class="q-trigger" onclick="toggle(this)">
+        <span class="q-num">19</span>
+        <span class="q-text">What security measures have you implemented or would add for production?</span>
+        <span class="q-arrow">▼</span>
+      </button>
+      <div class="q-body">
+        <div class="q-divider"></div>
+        <div class="q-answer">
+          <strong>Currently implemented:</strong> Helmet.js (secure HTTP headers: X-Frame-Options, CSP, X-XSS-Protection), CORS restricted to frontend domain, <code>.env</code> files excluded from git.<br><br>
+          <strong>For production I would add:</strong><br>
+          1. <strong>JWT authentication</strong> with refresh token rotation for all API and WebSocket connections<br>
+          2. <strong>Rate limiting</strong> on the disruption injection endpoint to prevent abuse<br>
+          3. <strong>Input validation</strong> using Zod or Joi on all REST payloads<br>
+          4. <strong>HTTPS</strong> — Render provides this via Let's Encrypt automatically<br>
+          5. <strong>WebSocket message auth</strong> — currently any client can emit <code>disruption:inject</code>, which should require a valid token
+        </div>
+        <div class="tip-box">point 5 (unauthenticated WS events) shows security-minded thinking — examiners are impressed when you identify your own vulnerabilities</div>
+      </div>
+    </div>
+
+    <div class="q-card" data-id="20">
+      <button class="q-trigger" onclick="toggle(this)">
+        <span class="q-num">20</span>
+        <span class="q-text">What would you do differently if you rebuilt AeroSync from scratch?</span>
+        <span class="q-arrow">▼</span>
+      </button>
+      <div class="q-body">
+        <div class="q-divider"></div>
+        <div class="q-answer">
+          Three honest improvements:<br><br>
+          <strong>1. Database-first:</strong> Start with PostgreSQL + Prisma ORM instead of mock data — retrofitting a DB schema onto an existing codebase is painful and forces architectural compromises.<br><br>
+          <strong>2. TypeScript from day one:</strong> The WebSocket event payloads and REST response types are the exact kind of data contracts that benefit from compile-time type checking. A <code>flight:updated</code> shape mismatch between server and client is very hard to debug at runtime.<br><br>
+          <strong>3. Separate REST and WebSocket servers:</strong> They have different scaling characteristics and failure modes — running them as separate services (different ports or containers) makes the system more resilient and independently deployable.
+        </div>
+        <div class="tip-box">this is the most important question — a mature, honest answer with specific technical reasoning impresses more than "nothing, it's perfect"</div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    aerosync viva guide &nbsp;·&nbsp; github.com/obstinix/aerosync &nbsp;·&nbsp;
+    <a href="https://aerosync-td50.onrender.com" target="_blank">aerosync-td50.onrender.com</a>
+  </footer>
+
+</div>
+
+<script>
+  const opened = new Set();
+
+  function toggle(btn) {
+    const card = btn.closest('.q-card');
+    const id = card.dataset.id;
+    const wasOpen = card.classList.contains('open');
+    card.classList.toggle('open');
+    if (!wasOpen) opened.add(id);
+    updateProgress();
+  }
+
+  function expandAll() {
+    document.querySelectorAll('.q-card').forEach(c => {
+      c.classList.add('open');
+      opened.add(c.dataset.id);
+    });
+    updateProgress();
+  }
+
+  function collapseAll() {
+    document.querySelectorAll('.q-card').forEach(c => c.classList.remove('open'));
+    updateProgress();
+  }
+
+  function updateProgress() {
+    const total = 20;
+    const count = opened.size;
+    const pct = Math.round((count / total) * 100);
+    document.getElementById('progress-bar').style.width = pct + '%';
+    document.getElementById('progress-text').textContent = count + ' / ' + total;
+    document.getElementById('opened-count').textContent = count;
+  }
+</script>
+</body>
+</html>
