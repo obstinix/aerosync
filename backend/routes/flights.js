@@ -1,38 +1,45 @@
-const express = require('express');
-const router = express.Router();
+import { Router } from 'express';
+import { db } from '../db/index.js';
+import { flights } from '../db/schema.js';
+import { eq } from 'drizzle-orm';
+import { validateFlightPatch } from '../validators/flight.js';
 
-// In-memory mock data
-const AIRPORTS = ['JFK', 'LHR', 'DXB', 'SIN', 'LAX'];
-const statuses = ['on-time', 'delayed', 'in-flight', 'boarding', 'landed', 'cancelled'];
+const router = Router();
 
-function generateFlights() {
-  return Array.from({ length: 25 }, (_, i) => ({
-    id: `AS${String(1000 + i).slice(1)}`,
-    origin: AIRPORTS[i % 5],
-    destination: AIRPORTS[(i + 2) % 5],
-    status: statuses[i % 6],
-    aircraft: ['B777-300ER', 'A380-800', 'B787-9'][i % 3],
-    cargoWeight: Math.floor(2 + Math.random() * 43),
-    maxCargo: Math.floor(50 + Math.random() * 30),
-    delay: statuses[i % 6] === 'delayed' ? Math.floor(15 + Math.random() * 165) : 0,
-    passengers: Math.floor(120 + Math.random() * 330),
-  }));
-}
-
-let flights = generateFlights();
-
-router.get('/', (req, res) => {
-  const { hub, status } = req.query;
-  let result = flights;
-  if (hub) result = result.filter(f => f.origin === hub || f.destination === hub);
-  if (status) result = result.filter(f => f.status === status);
-  res.json({ flights: result, total: result.length });
+// GET /api/flights
+router.get('/', async (req, res, next) => {
+  try {
+    const all = await db.select().from(flights).all();
+    res.json({ flights: all, count: all.length });
+  } catch (e) { next(e); }
 });
 
-router.get('/:id', (req, res) => {
-  const flight = flights.find(f => f.id === req.params.id);
-  if (!flight) return res.status(404).json({ error: 'Flight not found' });
-  res.json(flight);
+// GET /api/flights/:id
+router.get('/:id', async (req, res, next) => {
+  try {
+    const [flight] = await db.select().from(flights).where(eq(flights.id, req.params.id));
+    if (!flight) return res.status(404).json({ error: 'Flight not found' });
+    res.json(flight);
+  } catch (e) { next(e); }
 });
 
-module.exports = router;
+// PATCH /api/flights/:id
+router.patch('/:id', async (req, res, next) => {
+  try {
+    const parsed = validateFlightPatch(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'Invalid payload', details: parsed.error });
+    }
+    const [updated] = await db
+      .update(flights)
+      .set({ ...parsed.data, updatedAt: new Date().toISOString() })
+      .where(eq(flights.id, req.params.id))
+      .returning();
+    if (!updated) return res.status(404).json({ error: 'Flight not found' });
+    // Broadcast to all WS clients
+    req.app.get('io')?.emit('flight:updated', updated);
+    res.json(updated);
+  } catch (e) { next(e); }
+});
+
+export default router;
