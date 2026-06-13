@@ -37,9 +37,9 @@ export default function App() {
         display: 'flex',
         flexDirection: 'column',
         height: '100vh',
-        background: 'var(--c-bg-primary)',
-        color: 'var(--c-cream)',
-        fontFamily: 'var(--font-body)',
+        background: '#000000',
+        color: '#F5F5F5',
+        fontFamily: '"Space Grotesk", sans-serif',
         overflow: 'hidden',
       }}>
         <Navbar />
@@ -47,6 +47,7 @@ export default function App() {
           display: 'flex',
           flex: 1,
           overflow: 'hidden',
+          paddingTop: 48,
         }}>
           <Sidebar />
           <main className="app-main" style={{
