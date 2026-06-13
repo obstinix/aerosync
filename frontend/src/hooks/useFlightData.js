@@ -1,53 +1,54 @@
-import { useMemo } from 'react';
-import useStore from '../store/useStore';
+import { useState, useEffect, useCallback } from 'react';
+import { useSocket } from '../providers/SocketProvider.jsx';
 
-export default function useFlightData() {
-  const flights = useStore((s) => s.flights);
-  const alerts = useStore((s) => s.alerts);
-  const cargoManifests = useStore((s) => s.cargoManifests);
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-  const stats = useMemo(() => {
-    const active = flights.filter(
-      (f) => ['in-flight', 'boarding', 'on-time'].includes(f.status)
-    ).length;
-    const delayed = flights.filter((f) => f.status === 'delayed').length;
-    const total = flights.length;
-    const onTimePercent = total > 0 ? Math.round(((total - delayed) / total) * 100) : 0;
-    const totalCargo = flights.reduce((sum, f) => sum + f.cargoWeight, 0);
-    const totalMaxCargo = flights.reduce((sum, f) => sum + f.maxCargo, 0);
-    const cargoUtilization = totalMaxCargo > 0 ? Math.round((totalCargo / totalMaxCargo) * 100) : 0;
-    return { active, delayed, onTimePercent, cargoUtilization, total, totalCargo };
-  }, [flights]);
+/**
+ * Manages flight state from real Socket.IO events + REST fallback.
+ * @returns {{ flights, updateFlight, loading, error }}
+ */
+export function useFlightData() {
+  const { socket, connected } = useSocket();
+  const [flights, setFlights] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const flightsByStatus = useMemo(() => {
-    const grouped = {};
-    flights.forEach((f) => {
-      if (!grouped[f.status]) grouped[f.status] = [];
-      grouped[f.status].push(f);
+  // Initial load from REST (covers the case where WS connects late)
+  useEffect(() => {
+    fetch(`${API_URL}/api/flights`)
+      .then(r => r.json())
+      .then(({ flights: data }) => { setFlights(data || []); setLoading(false); })
+      .catch(e => { setError(e.message); setLoading(false); });
+  }, []);
+
+  // Live updates from WebSocket
+  useEffect(() => {
+    if (!socket) return;
+
+    const onInit = (allFlights) => setFlights(allFlights);
+    const onUpdate = (updated) => {
+      setFlights(prev => prev.map(f => f.id === updated.id ? updated : f));
+    };
+
+    socket.on('flights:init', onInit);
+    socket.on('flight:updated', onUpdate);
+
+    return () => {
+      socket.off('flights:init', onInit);
+      socket.off('flight:updated', onUpdate);
+    };
+  }, [socket]);
+
+  const updateFlight = useCallback(async (id, patch) => {
+    const res = await fetch(`${API_URL}/api/flights/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
     });
-    return grouped;
-  }, [flights]);
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+  }, []);
 
-  const overloadedFlights = useMemo(
-    () => flights.filter((f) => f.cargoUtilization > 90),
-    [flights]
-  );
-
-  const revenueAtRisk = useMemo(
-    () =>
-      cargoManifests
-        .filter((m) => m.utilization > 90)
-        .reduce((sum, m) => sum + m.revenue, 0),
-    [cargoManifests]
-  );
-
-  return {
-    flights,
-    alerts,
-    cargoManifests,
-    stats,
-    flightsByStatus,
-    overloadedFlights,
-    revenueAtRisk,
-  };
+  return { flights, updateFlight, loading, error, connected };
 }
+export default useFlightData;
