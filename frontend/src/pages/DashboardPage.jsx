@@ -2,7 +2,8 @@ import { useMemo } from 'react';
 import useFlightData from '../hooks/useFlightData.js';
 import GlobeView from '../components/Globe/GlobeView';
 import FlightPopup from '../components/Globe/FlightPopup';
-import { HudStrip } from '../components/shared/HudStrip.jsx';
+import { StatsPanel } from '../components/shared/StatsPanel.jsx';
+import { FlightList } from '../components/shared/FlightList.jsx';
 import { AlertFeed } from '../components/shared/AlertFeed.jsx';
 
 const AIRCRAFT_CAPACITY = {
@@ -52,7 +53,7 @@ export default function DashboardPage() {
       height: '100%',
       background: 'var(--c-bg-primary)',
     }}>
-      {/* Upper Area: Globe and Alerts side-by-side */}
+      {/* Upper Area: Globe/FlightList and Alerts side-by-side */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: '3fr 1fr',
@@ -60,10 +61,40 @@ export default function DashboardPage() {
         minHeight: 0,
         position: 'relative',
       }}>
-        {/* Globe Visualization */}
-        <div style={{ position: 'relative', borderRight: '1px solid var(--c-border)', minHeight: 0 }}>
-          <GlobeView />
-          <FlightPopup />
+        {/* Left Column: Globe and FlightList */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          borderRight: '1px solid var(--c-border)',
+          minHeight: 0,
+          overflow: 'hidden',
+        }}>
+          <div style={{ flex: 1, position: 'relative', minHeight: '300px' }}>
+            <GlobeView />
+            <FlightPopup />
+          </div>
+          <div style={{
+            height: '280px',
+            overflowY: 'auto',
+            borderTop: '1px solid var(--c-border)',
+            padding: 'var(--space-4)',
+            background: 'rgba(0,0,0,0.3)',
+          }}>
+            <h3 style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: 'var(--text-sm)',
+              fontWeight: 700,
+              color: 'var(--c-cream)',
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+              marginBottom: 'var(--space-3)',
+              borderBottom: '1px solid var(--c-border)',
+              paddingBottom: 'var(--space-1)',
+            }}>
+              LIVE FLIGHT STATUS
+            </h3>
+            <FlightList flights={flights} />
+          </div>
         </div>
 
         {/* Live Alerts feed */}
@@ -91,8 +122,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Bottom Area: HUD Strip */}
-      <HudStrip stats={stats} />
+      {/* Bottom Area: Stats Panel */}
+      <StatsPanel stats={stats} />
     </div>
   );
 }
