@@ -1,11 +1,23 @@
 import { useRef, useEffect, useCallback } from 'react';
 import useStore from '../../store/useStore';
-import { AIRPORTS, STORM_ZONES } from '../../store/mockData';
+import useFlightData from '../../hooks/useFlightData.js';
+import { STORM_ZONES } from '../../store/mockData';
+
+const AIRPORTS = {
+  JFK: { code: 'JFK', lat: 40.6413, lng: -73.7781, city: 'New York' },
+  LHR: { code: 'LHR', lat: 51.4700, lng: -0.4543, city: 'London' },
+  DXB: { code: 'DXB', lat: 25.2532, lng: 55.3657, city: 'Dubai' },
+  SIN: { code: 'SIN', lat: 1.3644, lng: 103.9915, city: 'Singapore' },
+  LAX: { code: 'LAX', lat: 33.9416, lng: -118.4085, city: 'Los Angeles' },
+  CDG: { code: 'CDG', lat: 49.0097, lng: 2.5479, city: 'Paris' },
+  EWR: { code: 'EWR', lat: 40.6895, lng: -74.1745, city: 'Newark' },
+  ORD: { code: 'ORD', lat: 41.9742, lng: -87.9073, city: 'Chicago' },
+  NRT: { code: 'NRT', lat: 35.7767, lng: 140.3864, city: 'Tokyo' },
+};
 
 function lerp(a, b, t) { return a + (b - a) * t; }
 
 function toRad(deg) { return (deg * Math.PI) / 180; }
-function toDeg(rad) { return (rad * 180) / Math.PI; }
 
 function project(lat, lng, cx, cy, r) {
   const x = cx + r * toRad(lng) * Math.cos(toRad(lat));
@@ -28,7 +40,7 @@ function getArcPoints(lat1, lng1, lat2, lng2, cx, cy, r, segments = 40) {
 
 export default function GlobeView() {
   const canvasRef = useRef(null);
-  const flights = useStore((s) => s.flights);
+  const { flights } = useFlightData();
   const showWeather = useStore((s) => s.showWeather);
   const toggleWeather = useStore((s) => s.toggleWeather);
   const setSelectedFlight = useStore((s) => s.setSelectedFlight);
@@ -39,8 +51,8 @@ export default function GlobeView() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    const W = canvas.width = canvas.offsetWidth * window.devicePixelRatio;
-    const H = canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+    canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+    canvas.height = canvas.offsetHeight * window.devicePixelRatio;
     ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
     const w = canvas.offsetWidth;
     const h = canvas.offsetHeight;
@@ -121,8 +133,8 @@ export default function GlobeView() {
     // Flight arcs
     const arcsData = [];
     flights.forEach((flight) => {
-      const o = flight.originData;
-      const d = flight.destinationData;
+      const o = AIRPORTS[flight.origin];
+      const d = AIRPORTS[flight.destination];
       if (!o || !d) return;
 
       const points = getArcPoints(o.lat, o.lng, d.lat, d.lng, cx, cy, r);
