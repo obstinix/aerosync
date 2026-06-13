@@ -1,185 +1,34 @@
 # AeroSync ✈️
 
-**AI-augmented airline & cargo operations dashboard — portfolio prototype**
+**A full-stack, real-time aviation operations and cargo dispatch dashboard.**
 
-[![Status](https://img.shields.io/badge/status-prototype-orange?style=flat-square)](https://aerosync-td50.onrender.com)
-[![React](https://img.shields.io/badge/React-18.3-61DAFB?style=flat-square&logo=react)](https://react.dev)
-[![Vite](https://img.shields.io/badge/Vite-5.4-646CFF?style=flat-square&logo=vite)](https://vitejs.dev)
-[![Node.js](https://img.shields.io/badge/Node.js-22.x-339933?style=flat-square&logo=node.js)](https://nodejs.org)
-[![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=flat-square&logo=python)](https://python.org)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
-
-🌐 **Live Demo:** https://aerosync-td50.onrender.com  *(Render free tier — allow ~30s cold start)*
+AeroSync is an aviation control dashboard built to monitor and orchestrate active flights, coordinate cargo manifests, and simulate disruption cascade events. The platform is designed around a three-tier production architecture: an Express + Socket.IO server backed by a SQLite database with Drizzle ORM, a FastAPI AI service running a trained Random Forest model for delay predictions, and a React frontend styled with custom SpaceX-derived design tokens and animations.
 
 ---
 
-## What This Is
+## System Architecture
 
-AeroSync is a **full-stack aviation operations dashboard** built to demonstrate:
-
-- Real-time WebSocket architecture for flight state synchronization
-- AI-assisted delay prediction using scikit-learn (Random Forest)
-- Gantt-style drag-and-drop scheduling board
-- 3D flight path visualization with CesiumJS / Mapbox GL
-- Disruption simulation with cascade impact analysis
-
-It's a **portfolio/prototype project**, not a production deployment. The architecture is designed for production readiness — the backend and AI service are fully coded — but the current live deployment only serves the React frontend with simulated data. See [Current State](#current-state) below.
-
----
-
-## Current State
-
-This is important to understand before cloning or extending the project:
-
-| Layer | Status | Details |
-|---|---|---|
-| **React Frontend** | ✅ Deployed | Live at aerosync-td50.onrender.com |
-| **Node.js Backend** | 🔧 Code complete, not deployed | Socket.IO + REST API ready in `/backend` |
-| **Python AI Service** | 🔧 Code complete, not deployed | FastAPI + scikit-learn in `/ai-service` |
-| **Real flight data** | ❌ Not integrated | Frontend uses 25 hardcoded mock flights |
-| **Database** | ❌ Not integrated | All state is in-memory / frontend state |
-| **Authentication** | ❌ JWT stub only | Middleware exists, not wired to routes |
-| **WebSocket live feed** | ⚠️ Simulated | `setInterval` + `Math.random()` in frontend |
-
-The deployed site shows you what the **UI and UX look like**. Running the full stack locally (see [Getting Started](#getting-started)) connects all three layers and gives you real WebSocket events.
-
----
-
-## Features (Full Stack)
-
-### Live Operations Dashboard
-- 3D globe (CesiumJS / Mapbox GL) with animated flight arc trails
-- Weather overlay via OpenWeatherMap API
-- Real-time alert sidebar with severity badges (🔴 critical / 🟡 warning / 🟢 nominal)
-- HUD metrics: active flights, delays, on-time %, cargo utilization
-- Clickable flight popups with route, status, ETA, and cargo weight
-
-### Smart Scheduling Board
-- Gantt-style drag-and-drop timeline (aircraft rows × time blocks)
-- Status-coded blocks: cyan (on-time), amber (delayed), red (cancelled)
-- AI suggestions panel with confidence scores and explainer toggle
-- Filters: hub, date range, aircraft type
-
-### Cargo Intelligence Panel
-- Manifest table filterable by flight, route, weight, and status
-- Capacity utilization bars with threshold coloring
-- Route optimization overlay: current vs AI-suggested
-- Summary metrics: total cargo, overloaded flights, revenue at risk
-
-### Disruption Simulator
-- Inject weather, technical, or security events via form
-- Severity slider + airport picker
-- Cascade visualization showing affected flight ripple
-- Impact summary: delay minutes, passengers, revenue loss estimate
-
----
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────┐
-│  FRONTEND  (React 18 + Vite 5)                          │
-│  Framer Motion · D3.js · CesiumJS · Socket.IO Client    │
-└──────────────────────────┬──────────────────────────────┘
-                           │  HTTP REST + WSS
-┌──────────────────────────▼──────────────────────────────┐
-│  BACKEND  (Node.js 22 + Express 4 + Socket.IO 4)        │
-│  /api/flights  /api/cargo  /api/disruptions/simulate     │
-│  WS: flight:updated  cargo:updated  alert:new            │
-└──────────────────────────┬──────────────────────────────┘
-                           │  Internal HTTP
-┌──────────────────────────▼──────────────────────────────┐
-│  AI SERVICE  (Python 3.11 + FastAPI + scikit-learn)     │
-│  POST /predict/delay  →  Random Forest classifier        │
-│  POST /optimize/route →  Constraint-based heuristic      │
-└─────────────────────────────────────────────────────────┘
-                           │
-┌──────────────────────────▼──────────────────────────────┐
-│  EXTERNAL APIs                                          │
-│  OpenWeatherMap · Mapbox GL · OpenSky Network            │
-└─────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+  User((Operator Browser)) <-->|WebSocket & HTTP| Express[Express Server :3001]
+  Express <-->|Better-SQLite3| DB[(SQLite Database)]
+  User -->|HTTP POST| FastAPI[FastAPI AI Service :8000]
+  FastAPI <-->|joblib| RF[Random Forest Model]
 ```
 
----
-
-## Tech Stack
-
-### Frontend
-| Package | Version | Role |
-|---|---|---|
-| React | 18.3.x | Component framework |
-| Vite | 5.4.x | Build tool + dev server |
-| Framer Motion | 11.x | Animations + transitions |
-| D3.js | 7.9.x | Charts, Gantt timeline |
-| Three.js | r165 | 3D WebGL |
-| CesiumJS | 1.116 | Geospatial globe |
-| Socket.IO Client | 4.7.x | WebSocket consumption |
-| React Router | 6.x | Client-side routing |
-| Tailwind CSS | 3.x | Utility styling |
-
-### Backend
-| Package | Version | Role |
-|---|---|---|
-| Node.js | 22.x LTS | Runtime |
-| Express | 4.19.x | REST API |
-| Socket.IO | 4.7.x | WebSocket server |
-| Helmet | 7.x | Security headers |
-| jsonwebtoken | 9.x | JWT auth (stub) |
-
-### AI Service
-| Package | Version | Role |
-|---|---|---|
-| Python | 3.11.x | Runtime |
-| FastAPI | 0.110.x | Async REST framework |
-| scikit-learn | 1.4.x | Random Forest delay model |
-| pandas | 2.2.x | Data processing |
-| numpy | 1.26.x | Numerical ops |
+- **Express + Socket.IO Backend**: Connects to SQLite using Drizzle ORM. Serves REST API routes and hosts a Socket.IO WebSocket server to synchronize operational state. A database background ticker runs every 4 seconds to tick flight progress values.
+- **FastAPI AI Service**: Loads a trained Random Forest regression model (`delay_rf_v1.pkl`) on startup to provide live delay probability and time predictions based on routes, carrier codes, departure slots, and weather factors.
+- **Vite React Frontend**: Styled with stark SpaceX operations tokens (true black surfaces, hairline borders, zero shadows, maximum 4px radius, Space Grotesk and JetBrains Mono typography). Animates updates using Framer Motion. Uses Leaflet with CartoDB Dark Matter tiles for geospatial tracking.
 
 ---
 
-## Project Structure
+## Features
 
-```
-aerosync/
-├── frontend/                    # React + Vite SPA
-│   ├── vite.config.js
-│   └── src/
-│       ├── App.jsx              # Root + router
-│       ├── components/
-│       │   ├── Globe/           # CesiumJS 3D globe
-│       │   ├── SchedulingBoard/ # Gantt + drag-drop
-│       │   ├── CargoPanel/      # Manifest table
-│       │   ├── DisruptionSim/   # Event injector
-│       │   └── shared/          # Navbar, Toast, Badge
-│       ├── hooks/
-│       │   ├── useWebSocket.js  # Socket.IO hook
-│       │   └── useFlightData.js # Flight state hook
-│       ├── pages/
-│       ├── store/               # Context / Zustand
-│       └── data/
-│           └── mockFlights.js   # 25 mock flights
-│
-├── backend/                     # Node.js + Express
-│   ├── server.js
-│   ├── routes/
-│   │   ├── flights.js           # GET/PATCH /api/flights
-│   │   ├── cargo.js             # GET /api/cargo
-│   │   └── disruptions.js       # POST /api/disruptions/simulate
-│   ├── sockets/
-│   │   └── flightSocket.js      # WS emitters
-│   └── middleware/
-│       └── auth.js              # JWT middleware
-│
-├── ai-service/                  # Python FastAPI
-│   ├── main.py
-│   └── models/
-│       ├── delay_predictor.py   # Random Forest
-│       └── route_optimizer.py   # Constraint optimizer
-│
-└── docs/
-    ├── PRD.md
-    └── API_CONTRACTS.md
-```
+- **Live Operations Monitoring**: Geospatial tracking via a dark CartoDB Leaflet map, displaying pulsing flight markers and route arcs. Ingests real-time events via an active WebSockets connection.
+- **System metrics HUD**: Displays live active flights, delayed counts, on-time percentage, and cargo utilization rates.
+- **Runway Scheduling Board**: A runway timeline display mapping active flight blocks, integrating drag-and-drop slots and AI delay prediction advisories.
+- **Cargo Dispatch Intelligence**: Monitors manifest weights, priority status levels, and capacity limits.
+- **Disruption Simulator**: Simulates operational events (weather, security, equipment) at specific hubs and calculates cascade delay ripple impacts.
 
 ---
 
@@ -189,52 +38,28 @@ aerosync/
 
 ```
 GET    /api/flights              List all flights with status
-GET    /api/flights/:id          Single flight detail
-PATCH  /api/flights/:id          Update status / gate / ETA
-GET    /api/cargo                All cargo manifests
-POST   /api/disruptions/simulate Inject disruption event
-POST   /api/predict/delay        Proxy to AI service
+GET    /api/flights/:id          Single flight details
+PATCH  /api/flights/:id          Update flight status, gate, or ETA
+GET    /api/cargo                List all cargo manifests
+POST   /api/disruptions/simulate Inject a simulated disruption event
+GET    /health                   Verify server and database health
+```
+
+### REST Endpoints (AI Service)
+
+```
+POST   /predict/delay            Predict delay probability and minutes
+GET    /health                   Verify model load status
 ```
 
 ### WebSocket Events
 
-**Server → Client**
 | Event | Payload | Trigger |
 |---|---|---|
-| `flight:updated` | `{ id, status, eta, gate }` | Every 3–5 s (random mutation) |
-| `cargo:updated` | `{ flightId, weight, utilization }` | Load change |
-| `alert:new` | `{ severity, message, flightId, timestamp }` | Operational event |
-| `disruption:cascade` | `{ originAirport, affectedFlights[], totalDelay }` | Disruption ripple |
-
-**Client → Server**
-| Event | Payload |
-|---|---|
-| `disruption:inject` | `{ type, airport, severity }` |
-| `schedule:update` | `{ flightId, newSlot }` |
-
-### AI Prediction API
-
-```http
-POST /predict/delay
-Content-Type: application/json
-
-{
-  "flightId": "AE-204",
-  "origin": "JFK",
-  "destination": "LHR",
-  "scheduledDeparture": "2026-04-21T14:30:00Z",
-  "weatherScore": 0.72
-}
-```
-
-```json
-{
-  "delayProbability": 0.84,
-  "estimatedDelayMinutes": 47,
-  "confidence": 0.91,
-  "reason": "High crosswind probability at LHR + historical delay pattern"
-}
-```
+| `flight:updated` | `{ id, status, progressPct, delayMinutes }` | Flight progress background ticker (4s) |
+| `cargo:updated` | `{ flightId, weightKg, utilization }` | Manifest change |
+| `alert:new` | `{ id, severity, message, timestamp }` | Operational event or disruption cascade |
+| `disruption:cascade` | `{ origin, affectedCount, estimatedTotalDelay }` | Disruption cascade ripple |
 
 ---
 
@@ -242,142 +67,93 @@ Content-Type: application/json
 
 ### Prerequisites
 
-```
-Node.js  >= 18.x (22.x recommended)
-Python   >= 3.9  (3.11 recommended)
-npm      >= 9.x
-pip      >= 23.x
-```
+- **Node.js** >= 20.19.x (22.x recommended)
+- **Python** >= 3.9 (3.11 recommended)
+- **npm** >= 10.x
 
-### 1. Clone
+### 1. Clone & Install Dependencies
+
+Clone the repository:
 
 ```bash
 git clone https://github.com/obstinix/aerosync.git
 cd aerosync
 ```
 
-### 2. Frontend
+Install the project dependencies from the root directory (uses npm workspaces to set up both backend and frontend):
 
 ```bash
-cd frontend
-cp .env.example .env          # add your VITE_MAPBOX_TOKEN
 npm install
-npm run dev
-# → http://localhost:5173
 ```
 
-### 3. Backend
+### 2. Configure Environment Variables
 
-```bash
-cd backend
-cp .env.example .env          # set PORT, JWT_SECRET, AI_SERVICE_URL
-npm install
-npm start
-# → http://localhost:3001 (REST + WebSocket)
-```
+Create environment config files for both frontend and backend.
 
-### 4. AI Service
-
-```bash
-cd ai-service
-python -m venv venv
-source venv/bin/activate       # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-python main.py
-# → http://localhost:8000
-# → OpenAPI docs at /docs
-```
-
-Once all three are running, open the frontend and watch the socket connection indicator turn green.
-
----
-
-## Environment Variables
-
-### `/backend/.env`
+For the **backend** (`/backend/.env`):
 
 ```env
 PORT=3001
 NODE_ENV=development
 CLIENT_URL=http://localhost:5173
 AI_SERVICE_URL=http://localhost:8000
-JWT_SECRET=your_secret_here
+JWT_SECRET=your_jwt_secret_token
 ```
 
-### `/frontend/.env`
+For the **frontend** (`/frontend/.env`):
 
 ```env
 VITE_API_URL=http://localhost:3001
 VITE_WS_URL=ws://localhost:3001
-VITE_MAPBOX_TOKEN=your_mapbox_token
-VITE_OPENWEATHER_KEY=your_openweather_key
+VITE_AI_URL=http://localhost:8000
 ```
 
-### `/ai-service/.env`
+### 3. Initialize and Seed the Database
 
-```env
-MODEL_PATH=./models/delay_rf_v1.pkl
-LOG_LEVEL=info
-PORT=8000
-```
-
----
-
-## Deployment
-
-The current live deployment is frontend-only on Render free tier (zero cost, cold starts).
-
-**To deploy the full stack on Render:**
-
-| Service | Type | Root Dir | Build | Start |
-|---|---|---|---|---|
-| Frontend | Static Site | `frontend` | `npm install && npm run build` | — |
-| Backend | Web Service | `backend` | `npm install` | `npm start` |
-| AI Service | Web Service | `ai-service` | `pip install -r requirements.txt` | `uvicorn main:app --host 0.0.0.0` |
-
-Add a Render PostgreSQL database and pass the `DATABASE_URL` env var to the backend to persist flight state between restarts.
-
----
-
-## Roadmap
-
-### Phase 1 — Finish what's built
-- [ ] Deploy backend as separate Render service (not just frontend)
-- [ ] Deploy AI service alongside backend
-- [ ] Wire frontend WebSocket to real backend (remove mock `setInterval`)
-- [ ] Complete JWT auth (protect PATCH/POST routes)
-
-### Phase 2 — Real data
-- [ ] Integrate OpenSky Network API for live flight positions
-- [ ] PostgreSQL database for persistent scheduling state
-- [ ] Train delay model on real Kaggle airline delay dataset
-- [ ] Mapbox token configured in production environment
-
-### Phase 3 — Production hardening
-- [ ] Mobile responsive layout
-- [ ] Role-based access (dispatcher vs manager vs viewer)
-- [ ] Multi-user collaborative scheduling (shared WS rooms)
-- [ ] Rate limiting on disruption injector
-- [ ] E2E tests (Playwright)
-- [ ] PDF export for cargo manifests
-
----
-
-## Contributing
+A SQLite database file (`aerosync.db`) is automatically initialized and migrated on backend startup. To pre-populate it with realistic flight schedules and cargo manifests, run the seed script:
 
 ```bash
-git checkout -b feature/your-feature
-git commit -m "feat: description"
-git push origin feature/your-feature
-# Open PR → main
+npm run seed --workspace=backend
 ```
+
+### 4. Setup and Run the AI Service
+
+Create a virtual environment, install requirements, and launch the FastAPI app using Uvicorn:
+
+```bash
+cd ai-service
+python3 -m venv venv
+source venv/bin/activate       # On Windows use: venv\Scripts\activate
+pip install -r requirements.txt
+python3 -m uvicorn main:app --host 127.0.0.1 --port 8000
+```
+
+### 5. Launch Backend & Frontend Dev Servers
+
+Return to the root directory and run the concurrent development command:
+
+```bash
+cd ..
+npm run dev
+```
+
+- The React frontend will run at [http://localhost:5173](http://localhost:5173)
+- The Express backend will run at [http://localhost:3001](http://localhost:3001)
+
+---
+
+## Deployment Specs
+
+For production builds:
+
+| Service | Directory | Build Command | Start Command |
+|---|---|---|---|
+| **Frontend** | `frontend` | `npm run build` | Serves statically |
+| **Backend** | `backend` | `npm install` | `npm start` |
+| **AI Service** | `ai-service` | `pip install -r requirements.txt` | `uvicorn main:app --host 0.0.0.0 --port 8000` |
 
 ---
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
-
----
-
-*Built by [obstinix](https://github.com/obstinix) · React · Node.js · Python · Socket.IO · FastAPI*
+MIT
