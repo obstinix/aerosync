@@ -260,4 +260,3 @@ export default function SchedulingBoard() {
     </div>
   );
 }
-export default SchedulingBoard;

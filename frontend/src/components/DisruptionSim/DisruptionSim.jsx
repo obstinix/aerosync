@@ -268,4 +268,3 @@ export default function DisruptionSim() {
     </div>
   );
 }
-export default DisruptionSim;
