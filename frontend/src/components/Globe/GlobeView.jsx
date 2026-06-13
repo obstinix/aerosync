@@ -1,6 +1,8 @@
-import { useRef, useEffect, useCallback } from 'react';
-import useStore from '../../store/useStore';
+import { useMemo } from 'react';
+import 'leaflet/dist/leaflet.css';
+import { MapContainer, TileLayer, CircleMarker, Popup, Polyline } from 'react-leaflet';
 import useFlightData from '../../hooks/useFlightData.js';
+import useStore from '../../store/useStore';
 import { STORM_ZONES } from '../../store/mockData';
 
 const AIRPORTS = {
@@ -15,199 +17,204 @@ const AIRPORTS = {
   NRT: { code: 'NRT', lat: 35.7767, lng: 140.3864, city: 'Tokyo' },
 };
 
-function lerp(a, b, t) { return a + (b - a) * t; }
+const TILE_URL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+const TILE_ATTRIBUTION =
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>';
 
-function toRad(deg) { return (deg * Math.PI) / 180; }
+const ACCENT = '#00D4FF';
 
-function project(lat, lng, cx, cy, r) {
-  const x = cx + r * toRad(lng) * Math.cos(toRad(lat));
-  const y = cy - r * toRad(lat);
-  return { x, y };
-}
-
-function getArcPoints(lat1, lng1, lat2, lng2, cx, cy, r, segments = 40) {
-  const points = [];
+/**
+ * Interpolate N points along a great-circle-ish path between two coords.
+ * Gives a slight curve so arcs don't look like straight lines at low zoom.
+ */
+function arcPoints(lat1, lng1, lat2, lng2, segments = 32) {
+  const pts = [];
   for (let i = 0; i <= segments; i++) {
     const t = i / segments;
-    const lat = lerp(lat1, lat2, t);
-    const lng = lerp(lng1, lng2, t);
-    const arc = Math.sin(t * Math.PI) * 15;
-    const p = project(lat, lng, cx, cy, r);
-    points.push({ x: p.x, y: p.y - arc });
+    pts.push([
+      lat1 + (lat2 - lat1) * t,
+      lng1 + (lng2 - lng1) * t,
+    ]);
   }
-  return points;
+  return pts;
 }
 
 export default function GlobeView() {
-  const canvasRef = useRef(null);
   const { flights } = useFlightData();
   const showWeather = useStore((s) => s.showWeather);
-  const toggleWeather = useStore((s) => s.toggleWeather);
   const setSelectedFlight = useStore((s) => s.setSelectedFlight);
-  const animRef = useRef(0);
-  const flightArcsRef = useRef([]);
 
-  const draw = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    canvas.width = canvas.offsetWidth * window.devicePixelRatio;
-    canvas.height = canvas.offsetHeight * window.devicePixelRatio;
-    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-    const w = canvas.offsetWidth;
-    const h = canvas.offsetHeight;
-    const cx = w / 2;
-    const cy = h / 2;
-    const r = Math.min(w, h) * 0.7;
-    const time = performance.now() / 1000;
+  /* ---- derived data ---- */
+  const flightArcs = useMemo(() => {
+    if (!flights) return [];
+    return flights
+      .map((flight) => {
+        const o = AIRPORTS[flight.origin];
+        const d = AIRPORTS[flight.destination];
+        if (!o || !d) return null;
+        return {
+          flight,
+          positions: arcPoints(o.lat, o.lng, d.lat, d.lng),
+          midpoint: [(o.lat + d.lat) / 2, (o.lng + d.lng) / 2],
+        };
+      })
+      .filter(Boolean);
+  }, [flights]);
 
-    // Background
-    ctx.fillStyle = '#0A0F1E';
-    ctx.fillRect(0, 0, w, h);
-
-    // Grid lines
-    ctx.strokeStyle = 'rgba(0, 229, 255, 0.04)';
-    ctx.lineWidth = 0.5;
-    for (let lat = -80; lat <= 80; lat += 20) {
-      ctx.beginPath();
-      for (let lng = -180; lng <= 180; lng += 2) {
-        const p = project(lat, lng, cx, cy, r);
-        lng === -180 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y);
-      }
-      ctx.stroke();
-    }
-    for (let lng = -180; lng <= 180; lng += 30) {
-      ctx.beginPath();
-      for (let lat = -80; lat <= 80; lat += 2) {
-        const p = project(lat, lng, cx, cy, r);
-        lat === -80 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y);
-      }
-      ctx.stroke();
-    }
-
-    // Weather zones
-    if (showWeather) {
-      STORM_ZONES.forEach((storm) => {
-        const p = project(storm.center[0], storm.center[1], cx, cy, r);
-        const sr = storm.radius * r * 0.008;
-        const pulse = 1 + Math.sin(time * 2 + storm.center[0]) * 0.15;
-        const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, sr * pulse);
-        const color = storm.severity === 'severe' ? '255,61,90' : storm.severity === 'moderate' ? '255,184,0' : '0,229,255';
-        grad.addColorStop(0, `rgba(${color}, 0.35)`);
-        grad.addColorStop(0.5, `rgba(${color}, 0.15)`);
-        grad.addColorStop(1, `rgba(${color}, 0)`);
-        ctx.fillStyle = grad;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, sr * pulse, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = `rgba(${color}, 0.7)`;
-        ctx.font = '10px Inter';
-        ctx.textAlign = 'center';
-        ctx.fillText(storm.name, p.x, p.y + sr * pulse + 14);
-      });
-    }
-
-    // Airport dots
-    Object.values(AIRPORTS).forEach((ap) => {
-      const p = project(ap.lat, ap.lng, cx, cy, r);
-      const glow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 12);
-      glow.addColorStop(0, 'rgba(0, 229, 255, 0.6)');
-      glow.addColorStop(1, 'rgba(0, 229, 255, 0)');
-      ctx.fillStyle = glow;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, 12, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = '#00E5FF';
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = 'rgba(226, 232, 240, 0.8)';
-      ctx.font = '600 11px "JetBrains Mono"';
-      ctx.textAlign = 'center';
-      ctx.fillText(ap.code, p.x, p.y - 12);
-    });
-
-    // Flight arcs
-    const arcsData = [];
-    flights.forEach((flight) => {
-      const o = AIRPORTS[flight.origin];
-      const d = AIRPORTS[flight.destination];
-      if (!o || !d) return;
-
-      const points = getArcPoints(o.lat, o.lng, d.lat, d.lng, cx, cy, r);
-      const statusColor = flight.status === 'delayed' ? '#FFB800' : flight.status === 'cancelled' ? '#FF3D5A' : '#00E5FF';
-      const alpha = flight.status === 'cancelled' ? 0.2 : 0.5;
-
-      // Arc line
-      ctx.strokeStyle = statusColor;
-      ctx.globalAlpha = alpha;
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      points.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-
-      // Moving dot
-      if (flight.status === 'in-flight' || flight.status === 'on-time') {
-        const progress = ((time * 0.08 + flight.id.charCodeAt(2) * 0.1) % 1);
-        const dotIdx = Math.floor(progress * (points.length - 1));
-        const dot = points[dotIdx];
-        if (dot) {
-          const dGlow = ctx.createRadialGradient(dot.x, dot.y, 0, dot.x, dot.y, 8);
-          dGlow.addColorStop(0, statusColor);
-          dGlow.addColorStop(1, 'transparent');
-          ctx.fillStyle = dGlow;
-          ctx.beginPath();
-          ctx.arc(dot.x, dot.y, 8, 0, Math.PI * 2);
-          ctx.fill();
-
-          ctx.fillStyle = statusColor;
-          ctx.beginPath();
-          ctx.arc(dot.x, dot.y, 3, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-
-      // Store arc bounding for click detection
-      const midIdx = Math.floor(points.length / 2);
-      const mid = points[midIdx];
-      arcsData.push({ flight, midX: mid.x, midY: mid.y });
-    });
-
-    flightArcsRef.current = arcsData;
-    animRef.current = requestAnimationFrame(draw);
-  }, [flights, showWeather]);
-
-  useEffect(() => {
-    animRef.current = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(animRef.current);
-  }, [draw]);
-
-  const handleClick = (e) => {
-    const rect = canvasRef.current.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
-
-    for (const arc of flightArcsRef.current) {
-      const dx = mx - arc.midX;
-      const dy = my - arc.midY;
-      if (Math.sqrt(dx * dx + dy * dy) < 20) {
-        setSelectedFlight(arc.flight);
-        return;
-      }
-    }
-  };
+  const stormCircles = useMemo(() => {
+    if (!showWeather) return [];
+    return STORM_ZONES.map((s) => ({
+      ...s,
+      position: s.center,
+      leafletRadius: s.radius * 80000,
+    }));
+  }, [showWeather]);
 
   return (
-    <div className="globe-container">
-      <button className={`weather-toggle ${showWeather ? 'active' : ''}`} onClick={toggleWeather}>
-        <span className="toggle-dot" />
-        {showWeather ? 'Weather ON' : 'Weather OFF'}
-      </button>
-      <canvas ref={canvasRef} className="globe-canvas" onClick={handleClick} style={{ cursor: 'crosshair' }} />
-    </div>
+    <>
+      {/* Pulse keyframes injected once */}
+      <style>{`
+        @keyframes aero-pulse {
+          0%   { opacity: 1; transform: scale(1); }
+          50%  { opacity: .5; transform: scale(1.6); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+        .leaflet-interactive.aero-pulse {
+          animation: aero-pulse 2s ease-in-out infinite;
+          transform-origin: center;
+        }
+        /* Remove any default Leaflet chrome that breaks full-bleed */
+        .leaflet-container {
+          background: #000 !important;
+        }
+      `}</style>
+
+      <MapContainer
+        center={[30, 0]}
+        zoom={2}
+        zoomControl={false}
+        style={{ height: '100%', width: '100%', background: '#000' }}
+        attributionControl={true}
+      >
+        <TileLayer url={TILE_URL} attribution={TILE_ATTRIBUTION} />
+
+        {/* ---- Storm / weather zones ---- */}
+        {stormCircles.map((storm) => {
+          const color =
+            storm.severity === 'severe'
+              ? '#FF3D5A'
+              : storm.severity === 'moderate'
+                ? '#FFB800'
+                : ACCENT;
+          return (
+            <CircleMarker
+              key={storm.id}
+              center={storm.position}
+              radius={storm.radius * 6}
+              pathOptions={{
+                color,
+                fillColor: color,
+                fillOpacity: 0.18,
+                weight: 1,
+                opacity: 0.5,
+              }}
+            >
+              <Popup>
+                <span style={{ fontFamily: 'Space Grotesk', color: '#F5F5F5' }}>
+                  <strong>{storm.name}</strong>
+                  <br />
+                  Severity: {storm.severity}
+                </span>
+              </Popup>
+            </CircleMarker>
+          );
+        })}
+
+        {/* ---- Airport markers ---- */}
+        {Object.values(AIRPORTS).map((ap) => (
+          <CircleMarker
+            key={ap.code}
+            center={[ap.lat, ap.lng]}
+            radius={7}
+            pathOptions={{
+              color: ACCENT,
+              fillColor: ACCENT,
+              fillOpacity: 0.85,
+              weight: 1.5,
+              opacity: 0.9,
+            }}
+          >
+            <Popup>
+              <span
+                style={{
+                  fontFamily: '"JetBrains Mono", monospace',
+                  fontSize: 12,
+                  color: '#F5F5F5',
+                }}
+              >
+                <strong>{ap.code}</strong> — {ap.city}
+              </span>
+            </Popup>
+          </CircleMarker>
+        ))}
+
+        {/* ---- Flight arcs (polylines) ---- */}
+        {flightArcs.map(({ flight, positions }) => {
+          const statusColor =
+            flight.status === 'delayed'
+              ? '#FFB800'
+              : flight.status === 'cancelled'
+                ? '#FF3D5A'
+                : ACCENT;
+          return (
+            <Polyline
+              key={`arc-${flight.id}`}
+              positions={positions}
+              pathOptions={{
+                color: statusColor,
+                weight: 1.5,
+                opacity: 0.4,
+                dashArray: flight.status === 'cancelled' ? '6 4' : undefined,
+              }}
+            />
+          );
+        })}
+
+        {/* ---- Flight dot markers ---- */}
+        {flightArcs.map(({ flight, midpoint }) => (
+          <CircleMarker
+            key={`dot-${flight.id}`}
+            center={midpoint}
+            radius={5}
+            className="aero-pulse"
+            pathOptions={{
+              color: ACCENT,
+              fillColor: ACCENT,
+              fillOpacity: 1,
+              weight: 0,
+            }}
+            eventHandlers={{
+              click: () => setSelectedFlight(flight),
+            }}
+          >
+            <Popup>
+              <span
+                style={{
+                  fontFamily: '"JetBrains Mono", monospace',
+                  fontSize: 11,
+                  color: '#F5F5F5',
+                }}
+              >
+                <strong>{flight.id}</strong>
+                <br />
+                {flight.origin} → {flight.destination}
+                <br />
+                Status: {flight.status}
+              </span>
+            </Popup>
+          </CircleMarker>
+        ))}
+      </MapContainer>
+    </>
   );
 }
