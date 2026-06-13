@@ -1,6 +1,5 @@
 import { db } from './index.js';
 import { flights, cargo } from './schema.js';
-import { randomUUID } from 'crypto';
 
 const SEED_FLIGHTS = [
   { id: 'AE-204', flightNumber: 'AE204', origin: 'JFK', destination: 'LHR', status: 'delayed',
@@ -20,5 +19,15 @@ const SEED_FLIGHTS = [
     gate: 'B31', aircraftType: 'A350', cargoWeightKg: 28000, delayMinutes: 74, progressPct: 0.04 },
 ];
 
+const SEED_CARGO = [
+  { id: 'CG-001', flightId: 'AE-204', manifestNumber: 'MNF-9921', weightKg: 18500, capacityKg: 20000, status: 'loaded', hazmat: 0, priority: 'express' },
+  { id: 'CG-002', flightId: 'AE-117', manifestNumber: 'MNF-8402', weightKg: 22000, capacityKg: 30000, status: 'loaded', hazmat: 1, priority: 'priority' },
+  { id: 'CG-003', flightId: 'AE-339', manifestNumber: 'MNF-1029', weightKg: 15200, capacityKg: 18000, status: 'loaded', hazmat: 0, priority: 'standard' },
+  { id: 'CG-004', flightId: 'AE-501', manifestNumber: 'MNF-4402', weightKg: 8400, capacityKg: 10000, status: 'loaded', hazmat: 0, priority: 'priority' },
+  { id: 'CG-005', flightId: 'AE-780', manifestNumber: 'MNF-0019', weightKg: 28000, capacityKg: 30000, status: 'overweight', hazmat: 1, priority: 'express' },
+];
+
 await db.insert(flights).values(SEED_FLIGHTS).onConflictDoNothing();
-console.log('[SEED] Flights inserted.');
+await db.insert(cargo).values(SEED_CARGO).onConflictDoNothing();
+
+console.log('[SEED] Flights and Cargo inserted.');
