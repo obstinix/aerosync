@@ -14,6 +14,7 @@
   "dependencies": {
     "@radix-ui/react-dialog": "1.1.7",
     "@radix-ui/react-tooltip": "1.1.8",
+    "@rolldown/binding-darwin-x64": "^1.0.3",
     "@vitejs/plugin-react": "^6.0.1",
     "axios": "1.7.2",
     "framer-motion": "^12.38.0",
