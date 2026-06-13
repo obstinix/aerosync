@@ -1,97 +1,82 @@
-"""AeroSync AI Service — Flight optimization and disruption prediction."""
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
-import random
+import joblib
+import json
+import numpy as np
+import os
 
 app = FastAPI(title="AeroSync AI Service", version="1.0.0")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
+app.add_middleware(CORSMiddleware,
+    allow_origins=[os.getenv("BACKEND_URL", "http://localhost:3001")],
+    allow_methods=["POST"],
+    allow_headers=["*"],
+)
 
-class OptimizationRequest(BaseModel):
-    flight_id: str
-    origin: str
-    destination: str
-    current_status: str
-    cargo_weight: Optional[float] = None
+# Load model on startup
+MODEL_PATH = os.getenv("MODEL_PATH", "./models/delay_rf_v1.pkl")
+COLS_PATH  = "./models/feature_columns.json"
 
+try:
+    model = joblib.load(MODEL_PATH)
+    feature_cols = json.load(open(COLS_PATH))
+    print(f"[AI] Model loaded from {MODEL_PATH}")
+except FileNotFoundError:
+    model = None
+    feature_cols = []
+    print("[AI] WARNING: No trained model found. Run python train.py first.")
 
-class DisruptionPrediction(BaseModel):
-    airport: str
-    event_type: str
-    severity: float
+class DelayRequest(BaseModel):
+    airline_code: str = Field(..., example="AE")
+    origin: str = Field(..., example="JFK")
+    destination: str = Field(..., example="LHR")
+    day_of_week: int = Field(..., ge=1, le=7)
+    departure_time: int = Field(..., ge=0, le=2359, description="HHMM format")
+    flight_length_min: int = Field(..., ge=15, le=900)
+    weather_score: Optional[float] = Field(0.0, ge=0.0, le=1.0)
 
+class DelayResponse(BaseModel):
+    delay_probability: float
+    estimated_delay_minutes: int
+    confidence: float
+    reason: str
+    model_version: str
+
+@app.post("/predict/delay", response_model=DelayResponse)
+async def predict_delay(req: DelayRequest):
+    if model is None:
+        raise HTTPException(503, "Model not loaded. Run python train.py.")
+
+    # Map to model features — these encodings are approximate without saved LabelEncoders.
+    # For production: save and reload LabelEncoders from train.py.
+    airline_idx  = hash(req.airline_code) % 18
+    origin_idx   = hash(req.origin) % 300
+    dest_idx     = hash(req.destination) % 300
+
+    X = np.array([[airline_idx, origin_idx, dest_idx,
+                   req.day_of_week, req.departure_time, req.flight_length_min]])
+    prob = float(model.predict_proba(X)[0][1])
+
+    # Weather score bumps the probability linearly
+    adjusted_prob = min(1.0, prob + req.weather_score * 0.2)
+    est_delay = int(adjusted_prob * 90) if adjusted_prob > 0.45 else 0
+
+    reasons = []
+    if req.weather_score > 0.6: reasons.append(f"high weather risk ({req.weather_score:.0%})")
+    if req.day_of_week in (1, 5, 7): reasons.append("peak travel day")
+    if 600 <= req.departure_time <= 900: reasons.append("morning rush slot")
+    if est_delay == 0: reasons.append("low historical delay probability")
+
+    return DelayResponse(
+        delay_probability=round(adjusted_prob, 4),
+        estimated_delay_minutes=est_delay,
+        confidence=round(0.75 + prob * 0.2, 4),
+        reason=" · ".join(reasons) if reasons else "No significant delay risk factors",
+        model_version="rf-v1.0",
+    )
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "service": "aerosync-ai"}
-
-
-@app.post("/api/optimize")
-def optimize_route(req: OptimizationRequest):
-    """Generate AI-powered route optimization suggestions."""
-    confidence = round(random.uniform(0.75, 0.98), 2)
-    fuel_savings = round(random.uniform(500, 5000), 0)
-    time_delta = random.randint(-30, 45)
-    return {
-        "flight_id": req.flight_id,
-        "suggestion": {
-            "type": "reroute" if confidence > 0.85 else "delay",
-            "confidence": confidence,
-            "description": f"Optimize {req.origin}->{req.destination} via alternate corridor",
-            "fuel_savings_kg": fuel_savings,
-            "time_delta_min": time_delta,
-            "recommended": confidence > 0.80,
-        },
-    }
-
-
-@app.post("/api/predict-disruption")
-def predict_disruption(req: DisruptionPrediction):
-    """Predict cascading impact of a disruption event."""
-    affected_count = max(1, int(req.severity * random.randint(3, 12)))
-    total_delay = int(req.severity * random.randint(60, 300))
-    revenue_impact = int(req.severity * random.randint(10000, 80000))
-    return {
-        "airport": req.airport,
-        "event_type": req.event_type,
-        "prediction": {
-            "affected_flights": affected_count,
-            "total_delay_minutes": total_delay,
-            "estimated_revenue_impact": revenue_impact,
-            "confidence": round(random.uniform(0.70, 0.95), 2),
-            "recommended_actions": [
-                "Pre-position ground crews",
-                "Notify connecting passengers",
-                "Activate backup aircraft pool",
-            ][:affected_count],
-        },
-    }
-
-
-@app.post("/api/cargo-balance")
-def cargo_balance(flights: list[dict]):
-    """Suggest cargo rebalancing across flights."""
-    suggestions = []
-    for f in flights[:10]:
-        util = f.get("cargoUtilization", 50)
-        if util > 85:
-            suggestions.append({
-                "flight_id": f.get("id", "unknown"),
-                "action": "offload",
-                "amount_tons": round((util - 75) * 0.5, 1),
-                "reason": "Exceeds optimal capacity threshold",
-            })
-        elif util < 40:
-            suggestions.append({
-                "flight_id": f.get("id", "unknown"),
-                "action": "consolidate",
-                "reason": "Underutilized — consider cargo consolidation",
-            })
-    return {"suggestions": suggestions}
-
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    return {"status": "ok", "model_loaded": model is not None}
