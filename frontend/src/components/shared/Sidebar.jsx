@@ -11,13 +11,14 @@ export function Sidebar() {
 
   return (
     <aside style={{
-      width: 200,
-      background: 'var(--c-bg-secondary)',
-      borderRight: '1px solid var(--c-border)',
+      width: 220,
+      background: '#0d0d0d',
+      borderRight: '1px solid rgba(255,255,255,0.08)',
       display: 'flex',
       flexDirection: 'column',
-      padding: 'var(--space-4) var(--space-2)',
-      gap: 'var(--space-1)',
+      padding: '24px 12px',
+      gap: '4px',
+      height: '100%',
     }}>
       {links.map((link) => {
         const Icon = link.icon;
@@ -28,21 +29,21 @@ export function Sidebar() {
             style={({ isActive }) => ({
               display: 'flex',
               alignItems: 'center',
-              gap: 'var(--space-3)',
-              padding: 'var(--space-3) var(--space-4)',
-              borderRadius: 'var(--r-md)',
+              gap: '12px',
+              padding: '10px 16px',
+              borderRadius: '2px',
               textDecoration: 'none',
-              fontFamily: 'var(--font-body)',
-              fontSize: 'var(--text-sm)',
-              fontWeight: isActive ? 600 : 400,
-              color: isActive ? 'var(--c-cream)' : 'var(--c-muted)',
-              background: isActive ? 'var(--c-bg-tertiary)' : 'transparent',
-              border: isActive ? '1px solid var(--c-border-hi)' : '1px solid transparent',
-              transition: 'all var(--dur-fast) var(--ease-out)',
+              fontFamily: '"Space Grotesk", sans-serif',
+              fontSize: '13px',
+              fontWeight: 500,
+              color: isActive ? '#00D4FF' : '#888888',
+              background: isActive ? 'rgba(0, 212, 255, 0.04)' : 'transparent',
+              borderLeft: isActive ? '2px solid #00D4FF' : '2px solid transparent',
+              transition: 'all 0.15s ease-out',
             })}
           >
             <Icon size={16} />
-            <span>{link.label}</span>
+            <span style={{ letterSpacing: '0.04em' }}>{link.label}</span>
           </NavLink>
         );
       })}
