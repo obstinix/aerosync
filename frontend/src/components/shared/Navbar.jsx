@@ -1,85 +1,115 @@
-import { useEffect, useState } from 'react';
+import { motion } from 'motion/react';
+import { NavLink } from 'react-router-dom';
 import { useSocket } from '../../providers/SocketProvider.jsx';
-import { Shield, Radio, Bell } from 'lucide-react';
+import { useEffect, useState } from 'react';
+
+const links = [
+  { to: '/', label: 'OPERATIONS' },
+  { to: '/scheduling', label: 'SCHEDULING' },
+  { to: '/cargo', label: 'CARGO' },
+  { to: '/simulator', label: 'DISRUPTIONS' },
+];
 
 export function Navbar() {
   const { connected } = useSocket();
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
-    const timer = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(timer);
+    const t = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(t);
   }, []);
 
   return (
     <header style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
       height: 48,
-      background: 'var(--c-bg-secondary)',
-      borderBottom: '1px solid var(--c-border)',
+      background: 'rgba(0,0,0,0.85)',
+      backdropFilter: 'blur(12px)',
+      WebkitBackdropFilter: 'blur(12px)',
+      borderBottom: '1px solid rgba(255,255,255,0.06)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '0 var(--space-4)',
-      position: 'relative',
+      padding: '0 24px',
       zIndex: 100,
     }}>
-      {/* Left section: Logo */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-        <Shield size={20} color="var(--c-sky)" />
-        <span style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: 'var(--text-lg)',
-          fontWeight: 700,
-          color: 'var(--c-cream)',
-          letterSpacing: '0.05em',
-        }}>
-          AEROSYNC
-        </span>
-        <span style={{
-          fontFamily: 'var(--font-data)',
-          fontSize: 'var(--text-xs)',
-          background: 'var(--c-sky-dim)',
-          color: 'var(--c-sky)',
-          border: '1px solid var(--c-sky-border)',
-          padding: '1px 6px',
-          borderRadius: 'var(--r-sm)',
-          marginLeft: 'var(--space-2)',
-        }}>
-          OPS_CENTER_v2.0
-        </span>
-      </div>
+      {/* Left: Wordmark */}
+      <span style={{
+        fontFamily: '"Space Grotesk", sans-serif',
+        fontWeight: 600,
+        fontSize: 16,
+        color: '#F5F5F5',
+        letterSpacing: '0.15em',
+      }}>
+        AEROSYNC
+      </span>
 
-      {/* Right section: Info & Clock */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
-        {/* UTC Clock */}
-        <div style={{
-          fontFamily: 'var(--font-data)',
-          fontSize: 'var(--text-xs)',
-          color: 'var(--c-muted)',
-          letterSpacing: '0.05em',
+      {/* Center: Nav links */}
+      <nav style={{ display: 'flex', gap: 4 }}>
+        {links.map(link => (
+          <NavLink
+            key={link.to}
+            to={link.to}
+            style={({ isActive }) => ({
+              textDecoration: 'none',
+            })}
+          >
+            {({ isActive }) => (
+              <motion.span
+                whileHover={{ color: '#00D4FF' }}
+                transition={{ duration: 0.15 }}
+                style={{
+                  fontFamily: '"Space Grotesk", sans-serif',
+                  fontWeight: 500,
+                  fontSize: 12,
+                  letterSpacing: '0.06em',
+                  color: isActive ? '#00D4FF' : '#888888',
+                  padding: '8px 16px',
+                  display: 'inline-block',
+                  cursor: 'pointer',
+                  borderBottom: isActive ? '1px solid #00D4FF' : '1px solid transparent',
+                }}
+              >
+                {link.label}
+              </motion.span>
+            )}
+          </NavLink>
+        ))}
+      </nav>
+
+      {/* Right: Clock + Connection */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <span style={{
+          fontFamily: '"JetBrains Mono", monospace',
+          fontSize: 11,
+          color: '#888888',
+          letterSpacing: '0.03em',
         }}>
           {time.toISOString().replace('T', ' ').substring(0, 19)} UTC
-        </div>
-
-        {/* Connection Status */}
+        </span>
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 'var(--space-2)',
-          background: 'rgba(255,255,255,0.02)',
-          border: '1px solid var(--c-border)',
-          padding: '4px 10px',
-          borderRadius: 'var(--r-md)',
+          gap: 6,
         }}>
-          <Radio size={12} color={connected ? 'var(--c-green)' : 'var(--c-red)'} />
+          <div style={{
+            width: 6,
+            height: 6,
+            borderRadius: '50%',
+            background: connected ? '#00D4FF' : '#FF4444',
+            boxShadow: connected ? '0 0 6px rgba(0,212,255,0.5)' : 'none',
+          }} />
           <span style={{
-            fontFamily: 'var(--font-data)',
-            fontSize: 'var(--text-xs)',
-            color: connected ? 'var(--c-green)' : 'var(--c-red)',
+            fontFamily: '"JetBrains Mono", monospace',
+            fontSize: 10,
+            color: connected ? '#00D4FF' : '#FF4444',
             textTransform: 'uppercase',
             letterSpacing: '0.05em',
           }}>
-            {connected ? 'LIVE_LINK' : 'LINK_LOST'}
+            {connected ? 'LIVE' : 'OFFLINE'}
           </span>
         </div>
       </div>
