@@ -1,0 +1,26 @@
+# Render Blueprint — AeroSync Production Deployment
+# https://render.com/docs/blueprint-spec
+
+services:
+  # Unified web service — backend serves the built frontend
+  - type: web
+    name: aerosync
+    runtime: node
+    region: oregon
+    plan: free
+    branch: main
+    buildCommand: |
+      npm install &&
+      cd frontend && npm install && npm run build && cd .. &&
+      cd backend && npm install && cd ..
+    startCommand: cd backend && node server.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: CLIENT_URL
+        value: https://aerosync-td50.onrender.com
+      - key: DB_PATH
+        value: /opt/render/project/src/aerosync.db
