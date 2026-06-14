@@ -9,11 +9,33 @@ import os
 
 app = FastAPI(title="AeroSync AI Service", version="1.0.0")
 
+# CORS — allow backend, frontend, and production origins
+allowed_origins = [
+    os.getenv("BACKEND_URL", "http://localhost:3001"),
+    os.getenv("CLIENT_URL", "http://localhost:9000"),
+    "https://aerosync-td50.onrender.com",
+    "http://localhost:5173",
+    "http://localhost:3000",
+]
+
 app.add_middleware(CORSMiddleware,
-    allow_origins=[os.getenv("BACKEND_URL", "http://localhost:3001")],
-    allow_methods=["POST"],
+    allow_origins=allowed_origins,
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
+
+@app.get("/")
+async def root():
+    return {
+        "name": "AeroSync AI Service",
+        "version": "1.0.0",
+        "status": "operational",
+        "endpoints": {
+            "predict_delay": "POST /predict/delay",
+            "health": "GET /health",
+        },
+        "docs": "/docs",
+    }
 
 # Load model on startup
 MODEL_PATH = os.getenv("MODEL_PATH", "./models/delay_rf_v1.pkl")
