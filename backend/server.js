@@ -18,9 +18,18 @@ import('./db/migrate.js');
 const app = express();
 const httpServer = createServer(app);
 
+// Allowed origins — supports Render production URL and local dev
+const ALLOWED_ORIGINS = [
+  process.env.CLIENT_URL,
+  'https://aerosync-td50.onrender.com',
+  'http://localhost:9000',
+  'http://localhost:5173',
+  'http://localhost:3000',
+].filter(Boolean);
+
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: ALLOWED_ORIGINS,
     methods: ['GET', 'POST'],
   },
   transports: ['websocket', 'polling'],
@@ -31,8 +40,10 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      connectSrc: ["'self'", 'wss:', 'https://opensky-network.org'],
-      imgSrc: ["'self'", 'data:', 'https://api.mapbox.com', 'blob:'],
+      connectSrc: ["'self'", 'wss:', 'ws:', 'https://opensky-network.org', ...ALLOWED_ORIGINS],
+      imgSrc: ["'self'", 'data:', 'blob:', 'https://*.basemaps.cartocdn.com', 'https://api.mapbox.com'],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://unpkg.com'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
       scriptSrc: ["'self'", "'unsafe-inline'"],
     },
   },
@@ -40,7 +51,7 @@ app.use(helmet({
 
 // CORS
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: ALLOWED_ORIGINS,
   credentials: true,
 }));
 
@@ -62,6 +73,33 @@ app.use('/api/flights', flightsRouter);
 app.use('/api/cargo', cargoRouter);
 app.use('/api/disruptions', mutationLimiter, disruptionsRouter);
 
+// Root route — API discovery
+app.get('/', (req, res) => {
+  res.json({
+    name: 'AeroSync API',
+    version: '1.0.0',
+    status: 'operational',
+    endpoints: {
+      health: '/health',
+      flights: '/api/flights',
+      cargo: '/api/cargo',
+      disruptions: '/api/disruptions/simulate',
+    },
+    docs: 'https://github.com/obstinix/aerosync',
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// Serve frontend static build in production
+import path from 'path';
+import { fileURLToPath } from 'url';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const frontendDist = path.join(__dirname, '../frontend/dist');
+
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(frontendDist));
+}
+
 // Health check — used by Render and monitoring
 app.get('/health', (req, res) => {
   try {
@@ -72,8 +110,11 @@ app.get('/health', (req, res) => {
   }
 });
 
-// 404 fallback
+// 404 fallback — serve SPA in production, JSON 404 for API routes
 app.use((req, res) => {
+  if (process.env.NODE_ENV === 'production' && !req.path.startsWith('/api/') && !req.path.startsWith('/health')) {
+    return res.sendFile(path.join(frontendDist, 'index.html'));
+  }
   res.status(404).json({ error: `Route ${req.method} ${req.path} not found` });
 });
 
