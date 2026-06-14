@@ -2,9 +2,9 @@
 
 body {
   margin: 0;
-  background-color: var(--c-bg-primary);
-  color: var(--c-cream);
-  font-family: var(--font-body);
+  background-color: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-display);
 }
 
 .app-shell {
