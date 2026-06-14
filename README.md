@@ -10,47 +10,162 @@ AeroSync is an aviation control dashboard built to monitor and orchestrate activ
 
 ```mermaid
 graph TD
-  User((Operator Browser)) <-->|WebSocket & HTTP| Express[Express Server :3001]
+  User((Operator Browser)) <-->|WebSocket & HTTP| Express[Express Server :9001]
   Express <-->|Better-SQLite3| DB[(SQLite Database)]
-  User -->|HTTP POST| FastAPI[FastAPI AI Service :8000]
+  User -->|HTTP POST| FastAPI[FastAPI AI Service :9002]
   FastAPI <-->|joblib| RF[Random Forest Model]
 ```
 
-- **Express + Socket.IO Backend**: Connects to SQLite using Drizzle ORM. Serves REST API routes and hosts a Socket.IO WebSocket server to synchronize operational state. A database background ticker runs every 4 seconds to tick flight progress values.
-- **FastAPI AI Service**: Loads a trained Random Forest regression model (`delay_rf_v1.pkl`) on startup to provide live delay probability and time predictions based on routes, carrier codes, departure slots, and weather factors.
-- **Vite React Frontend**: Styled with stark SpaceX operations tokens (true black surfaces, hairline borders, zero shadows, maximum 4px radius, Space Grotesk and JetBrains Mono typography). Animates updates using Framer Motion. Uses Leaflet with CartoDB Dark Matter tiles for geospatial tracking.
+### Production Architecture (Render)
+In production, the application runs as a **unified service**:
+- The **Express Backend** serves both the REST/WebSocket API and the built static assets of the **React Frontend** from the `frontend/dist` directory. This simplifies routing, eliminates CORS configuration issues in production, and reduces resource costs.
+- The **FastAPI AI Service** operates as a microservice, directly accessible by the frontend.
 
 ---
 
 ## Features
 
 - **Live Operations Monitoring**: Geospatial tracking via a dark CartoDB Leaflet map, displaying pulsing flight markers and route arcs. Ingests real-time events via an active WebSockets connection.
-- **System metrics HUD**: Displays live active flights, delayed counts, on-time percentage, and cargo utilization rates.
+- **System Metrics HUD**: Displays live active flights, delayed counts, on-time percentage, and cargo utilization rates.
 - **Runway Scheduling Board**: A runway timeline display mapping active flight blocks, integrating drag-and-drop slots and AI delay prediction advisories.
 - **Cargo Dispatch Intelligence**: Monitors manifest weights, priority status levels, and capacity limits.
 - **Disruption Simulator**: Simulates operational events (weather, security, equipment) at specific hubs and calculates cascade delay ripple impacts.
 
 ---
 
+## Project Structure
+
+```text
+aerosync/
+├── ai-service/          # FastAPI AI Service (Python)
+│   ├── models/          # Trained Random Forest model & features
+│   ├── main.py          # FastAPI application server
+│   └── requirements.txt # Python dependency specification
+├── backend/             # Express API & WebSocket Server (Node)
+│   ├── db/              # SQLite database schema, seeding, & migrations
+│   ├── routes/          # API Route controllers (flights, cargo, disruptions)
+│   ├── sockets/         # Socket.IO connection & background ticker (4s)
+│   └── server.js        # Express application entrypoint
+├── frontend/            # React Client Application (Vite)
+│   ├── src/             # Component tree, styles, providers, and state stores
+│   └── vite.config.js   # Vite configuration with chunk-splitting
+├── render.yaml          # Render Blueprint deployment configuration
+└── package.json         # Workspace configuration and workspace-wide scripts
+```
+
+---
+
 ## API Reference
 
-### REST Endpoints (Backend)
+### REST Endpoints (Backend - Port 9001)
 
-```
-GET    /api/flights              List all flights with status
-GET    /api/flights/:id          Single flight details
-PATCH  /api/flights/:id          Update flight status, gate, or ETA
-GET    /api/cargo                List all cargo manifests
-POST   /api/disruptions/simulate Inject a simulated disruption event
-GET    /health                   Verify server and database health
+#### `GET /`
+Returns API metadata and service status.
+```json
+{
+  "name": "AeroSync API",
+  "version": "1.0.0",
+  "status": "operational",
+  "endpoints": {
+    "health": "/health",
+    "flights": "/api/flights",
+    "cargo": "/api/cargo",
+    "disruptions": "/api/disruptions/simulate"
+  }
+}
 ```
 
-### REST Endpoints (AI Service)
+#### `GET /health`
+Verifies server and SQLite database health. Returns status 200 on success.
+```json
+{ "status": "ok", "db": "ok", "ts": "2026-06-14T09:36:55.796Z" }
+```
 
+#### `GET /api/flights`
+Returns all active and scheduled flights.
+```json
+{
+  "flights": [
+    {
+      "id": "AE-102",
+      "flightNumber": "AE102",
+      "origin": "JFK",
+      "destination": "LHR",
+      "status": "on_time",
+      "progressPct": 0.35,
+      "delayMinutes": 0,
+      "scheduledDeparture": "2026-06-14T12:00:00Z"
+    }
+  ],
+  "count": 1
+}
 ```
-POST   /predict/delay            Predict delay probability and minutes
-GET    /health                   Verify model load status
+
+#### `GET /api/flights/:id`
+Returns a single flight's details.
+
+#### `PATCH /api/flights/:id`
+Updates gate, status, or ETA of a flight. Broadcasts `flight:updated` WebSocket event.
+
+#### `GET /api/cargo`
+Returns all cargo manifest lists.
+
+#### `POST /api/disruptions/simulate`
+Simulates a cascade disruption event at an airport.
+- **Payload**: `{ "type": "weather", "airport": "JFK", "severity": 8, "description": "Severe thunderstorm" }`
+- **Response**: `{ "disruptionId": "...", "affectedCount": 4, "estimatedTotalDelay": 256 }`
+
+---
+
+### REST Endpoints (AI Service - Port 9002)
+
+#### `GET /`
+Returns AI Service metadata, active endpoints, and docs link.
+```json
+{
+  "name": "AeroSync AI Service",
+  "version": "1.0.0",
+  "status": "operational",
+  "endpoints": {
+    "predict_delay": "POST /predict/delay",
+    "health": "GET /health"
+  },
+  "docs": "/docs"
+}
 ```
+
+#### `GET /health`
+Checks model loading status.
+```json
+{ "status": "ok", "model_loaded": true }
+```
+
+#### `POST /predict/delay`
+Evaluates flight details against the Random Forest model and weather conditions.
+- **Payload**:
+  ```json
+  {
+    "airline_code": "AE",
+    "origin": "JFK",
+    "destination": "LHR",
+    "day_of_week": 1,
+    "departure_time": 1430,
+    "flight_length_min": 420,
+    "weather_score": 0.8
+  }
+  ```
+- **Response**:
+  ```json
+  {
+    "delay_probability": 0.725,
+    "estimated_delay_minutes": 65,
+    "confidence": 0.825,
+    "reason": "high weather risk (80%) · peak travel day",
+    "model_version": "rf-v1.0"
+  }
+  ```
+
+---
 
 ### WebSocket Events
 
@@ -63,97 +178,82 @@ GET    /health                   Verify model load status
 
 ---
 
-## Getting Started
+## Local Setup & Run Guide
+
+To prevent port conflicts with other projects running on ports `3000`, `3001`, or `5173`, the local servers are configured to use ports **`9000` (Frontend)**, **`9001` (Backend)**, and **`9002` (AI Service)**.
 
 ### Prerequisites
-
 - **Node.js** >= 20.19.x (22.x recommended)
 - **Python** >= 3.9 (3.11 recommended)
 - **npm** >= 10.x
 
-### 1. Clone & Install Dependencies
+---
 
-Clone the repository:
-
-```bash
-git clone https://github.com/obstinix/aerosync.git
-cd aerosync
-```
-
-Install the project dependencies from the root directory (uses npm workspaces to set up both backend and frontend):
-
+### Step 1: Install Dependencies
+From the root directory:
 ```bash
 npm install
 ```
 
-### 2. Configure Environment Variables
-
-Create environment config files for both frontend and backend.
-
-For the **backend** (`/backend/.env`):
-
-```env
-PORT=3001
-NODE_ENV=development
-CLIENT_URL=http://localhost:5173
-AI_SERVICE_URL=http://localhost:8000
-JWT_SECRET=your_jwt_secret_token
-```
-
-For the **frontend** (`/frontend/.env`):
-
-```env
-VITE_API_URL=http://localhost:3001
-VITE_WS_URL=ws://localhost:3001
-VITE_AI_URL=http://localhost:8000
-```
-
-### 3. Initialize and Seed the Database
-
-A SQLite database file (`aerosync.db`) is automatically initialized and migrated on backend startup. To pre-populate it with realistic flight schedules and cargo manifests, run the seed script:
-
+### Step 2: Seed the Local Database
 ```bash
 npm run seed --workspace=backend
 ```
 
-### 4. Setup and Run the AI Service
-
-Create a virtual environment, install requirements, and launch the FastAPI app using Uvicorn:
-
+### Step 3: Run the AI Service (FastAPI)
+Create a virtual environment, install requirements, and run the FastAPI server on port `9002`:
 ```bash
 cd ai-service
 python3 -m venv venv
-source venv/bin/activate       # On Windows use: venv\Scripts\activate
+source venv/bin/activate       # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
-python3 -m uvicorn main:app --host 127.0.0.1 --port 8000
+BACKEND_URL=http://localhost:9000 python3 -m uvicorn main:app --host 127.0.0.1 --port 9002
 ```
 
-### 5. Launch Backend & Frontend Dev Servers
-
-Return to the root directory and run the concurrent development command:
-
+### Step 4: Run the Backend Server (Express)
+In a new terminal window, configure the environment variables and run on port `9001`:
 ```bash
-cd ..
-npm run dev
+cd backend
+# Create environment file from template
+cp .env.example .env
+# Start server on custom port
+PORT=9001 CLIENT_URL=http://localhost:9000 node server.js
 ```
 
-- The React frontend will run at [http://localhost:5173](http://localhost:5173)
-- The Express backend will run at [http://localhost:3001](http://localhost:3001)
+### Step 5: Run the Frontend App (Vite React)
+In a new terminal window, direct the frontend to connect to custom ports `9001` and `9002`, then start on port `9000`:
+```bash
+cd frontend
+# Create environment file from template
+cp .env.example .env
+# Run Vite on port 9000
+VITE_API_URL=http://localhost:9001 VITE_WS_URL=http://localhost:9001 VITE_AI_URL=http://localhost:9002 npx vite --port 9000 --host 0.0.0.0
+```
+
+Open [http://localhost:9000/](http://localhost:9000/) in your browser to view the live dashboard.
 
 ---
 
-## Deployment Specs
+## Production Deployment
 
-For production builds:
+### Render Blueprint (Recommended)
+This repository contains a `render.yaml` spec that automatically provisions a web service. When pushed to GitHub:
+1. Render deploys the Node.js backend.
+2. It builds the frontend and places output assets into `frontend/dist`.
+3. The backend is configured to statically serve the frontend assets in production.
+4. No CORS issues arise because both serve from the same origin.
 
-| Service | Directory | Build Command | Start Command |
-|---|---|---|---|
-| **Frontend** | `frontend` | `npm run build` | Serves statically |
-| **Backend** | `backend` | `npm install` | `npm start` |
-| **AI Service** | `ai-service` | `pip install -r requirements.txt` | `uvicorn main:app --host 0.0.0.0 --port 8000` |
+### Manual Production Build
+1. Build the frontend:
+   ```bash
+   cd frontend && npm install && npm run build
+   ```
+2. Start the backend:
+   ```bash
+   cd backend && npm install && NODE_ENV=production PORT=3001 node server.js
+   ```
 
 ---
 
 ## License
-
 MIT
