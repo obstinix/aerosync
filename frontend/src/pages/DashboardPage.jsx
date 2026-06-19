@@ -4,7 +4,7 @@ import GlobeView from '../components/Globe/GlobeView';
 import FlightPopup from '../components/Globe/FlightPopup';
 import { StatsPanel } from '../components/shared/StatsPanel.jsx';
 import { FlightList } from '../components/shared/FlightList.jsx';
-import { AlertFeed } from '../components/shared/AlertFeed.jsx';
+import AlertLog from '../components/AlertLog.jsx';
 import ATCAudioWidget from '../components/ATCAudioWidget.jsx';
 import ErrorBoundary from '../components/ErrorBoundary.jsx';
 
@@ -143,7 +143,7 @@ export default function DashboardPage() {
           }}>
             SYSTEM ALERTS
           </h3>
-          <AlertFeed maxItems={10} />
+          <AlertLog />
         </div>
       </div>
 

@@ -18,10 +18,18 @@ const useStore = create((set, get) => ({
   setSelectedHub: (hub) => set({ selectedHub: hub }),
 
   // Alerts
-  alerts: generateAlerts(initialFlights),
+  alerts: generateAlerts(initialFlights).map(a => ({ ...a, acknowledged: false })),
   addAlert: (alert) =>
     set((state) => ({
-      alerts: [alert, ...state.alerts].slice(0, 20),
+      alerts: [{ ...alert, acknowledged: false }, ...state.alerts].slice(0, 20),
+    })),
+  acknowledgeAlert: (id) =>
+    set((state) => ({
+      alerts: state.alerts.map((a) => (a.id === id ? { ...a, acknowledged: true } : a)),
+    })),
+  acknowledgeAllAlerts: () =>
+    set((state) => ({
+      alerts: state.alerts.map((a) => ({ ...a, acknowledged: true })),
     })),
 
   // Cargo
