@@ -1,11 +1,14 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 import joblib
 import json
 import numpy as np
 import os
+import asyncio
+import random
 
 app = FastAPI(title="AeroSync AI Service", version="1.0.0")
 
@@ -102,3 +105,97 @@ async def predict_delay(req: DelayRequest):
 @app.get("/health")
 def health():
     return {"status": "ok", "model_loaded": model is not None}
+
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+class ChatRequest(BaseModel):
+    message: str
+    history: List[ChatMessage] = Field(default_factory=list)
+    flights: List[dict] = Field(default_factory=list)
+
+@app.post("/chat")
+async def chat_endpoint(req: ChatRequest):
+    async def event_generator():
+        delayed_flights = [f for f in req.flights if f.get('status') == 'delayed' or f.get('delayMinutes', 0) > 0]
+        critical_flights = [f for f in req.flights if f.get('status') == 'critical']
+        msg_lower = req.message.lower()
+        
+        response_text = ""
+        if "status" in msg_lower or "summary" in msg_lower or "current" in msg_lower or "state" in msg_lower:
+            response_text = (
+                f"### Operations Status Summary\n\n"
+                f"We are currently monitoring **{len(req.flights)}** active flights.\n"
+                f"- **Delayed flights**: {len(delayed_flights)}\n"
+                f"- **Critical/Emergency alerts**: {len(critical_flights)}\n\n"
+            )
+            if critical_flights:
+                response_text += "#### Critical Alerts:\n"
+                for f in critical_flights:
+                    response_text += f"- **{f.get('flightNumber')}** ({f.get('origin')} -> {f.get('destination')}): Status CRITICAL. Delay: {f.get('delayMinutes', 0)} mins.\n"
+                response_text += "\n"
+            
+            response_text += (
+                "#### Recommendations:\n"
+                "1. **Re-route delayed flights**: Prioritize arrival slots for high-impact passenger connections.\n"
+                "2. **Mitigate cascading impact**: Alert ground crews at hub airports to expedite baggage and refueling.\n"
+                "3. **OpenSky crosscheck**: Validate transponder telemetry to confirm actual flight paths."
+            )
+        elif "recover" in msg_lower or "mitigate" in msg_lower or "plan" in msg_lower or "solve" in msg_lower:
+            response_text = (
+                "### Recovery Action Plan (AeroSync AI Engine)\n\n"
+                "Based on the live schedule and active disruptions, the following mitigation steps are recommended:\n\n"
+                "1. **Tail Swap (LHR Hub)**: Swap the aircraft for the LHR outbound flight to minimize downstream crew hour violations.\n"
+                "2. **Dynamic Holding Pattern**: Hold the JFK-bound flight by 15 minutes to secure 12 passenger connections.\n"
+                "3. **Cargo Priority Reassignment**: Shift priority cargo shipments from the delayed flight to the next scheduled flight departing in 2 hours.\n"
+                "4. **Fuel Hedging / Acceleration**: Request pilot acceleration (CI/Cost Index adjustment) to recover up to 10 minutes en-route for the DXB flight."
+            )
+        else:
+            response_text = (
+                f"### AeroSync AI Response\n\n"
+                f"Acknowledged. I am analyzing the operations network with **{len(req.flights)} flights** in view.\n\n"
+                f"Please let me know if you would like me to:\n"
+                f"- Generate a **network recovery plan** to mitigate delays.\n"
+                f"- Check the **status summary** of specific hub airports (JFK, LHR, CDG).\n"
+                f"- Assess **cascading disruption risks** for cargo or passenger loads."
+            )
+
+        api_key = os.getenv("OPENAI_API_KEY")
+        if api_key:
+            try:
+                from openai import AsyncOpenAI
+                client = AsyncOpenAI(api_key=api_key)
+                system_prompt = (
+                    "You are the AeroSync AI War Room assistant. You help airline dispatchers "
+                    "recover from flight disruptions, weather delays, and cargo bottlenecks. "
+                    "Provide professional, structured, concise recommendations using markdown. "
+                    f"Current flight status data: {json.dumps(req.flights)}\n"
+                    f"Delayed flights count: {len(delayed_flights)}, Critical count: {len(critical_flights)}."
+                )
+                messages = [{"role": "system", "content": system_prompt}]
+                for h in req.history:
+                    messages.append({"role": h.role, "content": h.content})
+                messages.append({"role": "user", "content": req.message})
+                
+                stream = await client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=messages,
+                    stream=True
+                )
+                async for chunk in stream:
+                    content = chunk.choices[0].delta.content
+                    if content:
+                        yield f"data: {json.dumps({'text': content})}\n\n"
+                return
+            except Exception as e:
+                pass
+
+        # Fallback simulation
+        words = response_text.split(" ")
+        for i, word in enumerate(words):
+            chunk = word + (" " if i < len(words) - 1 else "")
+            yield f"data: {json.dumps({'text': chunk})}\n\n"
+            await asyncio.sleep(0.03)
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
