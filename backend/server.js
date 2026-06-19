@@ -129,6 +129,9 @@ app.use((err, req, res, next) => {
 // WebSocket
 initFlightSocket(io);
 
+import { initOpenSkyService } from './services/openskyService.js';
+initOpenSkyService(io);
+
 // Store io in app settings so routes can access it
 app.set('io', io);
 

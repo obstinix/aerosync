@@ -16,6 +16,8 @@ sqlite.exec(`
     cargo_weight_kg REAL DEFAULT 0,
     delay_minutes INTEGER DEFAULT 0,
     progress_pct REAL DEFAULT 0,
+    lat REAL,
+    lon REAL,
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now'))
   );

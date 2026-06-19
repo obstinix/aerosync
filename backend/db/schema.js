@@ -15,6 +15,8 @@ export const flights = sqliteTable('flights', {
   cargoWeightKg: real('cargo_weight_kg').default(0),
   delayMinutes: integer('delay_minutes').default(0),
   progressPct: real('progress_pct').default(0),        // 0.0–1.0 flight completion
+  lat: real('lat'),
+  lon: real('lon'),
   createdAt: text('created_at').default(new Date().toISOString()),
   updatedAt: text('updated_at').default(new Date().toISOString()),
 });
