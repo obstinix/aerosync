@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: aerosync-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: aerosync
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    container_name: aerosync-backend
+    ports:
+      - "9001:9001"
+    environment:
+      - NODE_ENV=production
+      - PORT=9001
+      - DATABASE_URL=postgresql://postgres:postgrespassword@postgres:5432/aerosync?schema=public
+      - CLIENT_URL=http://localhost:9000
+      - JWT_SECRET=aerosync-secret-key-10293
+    depends_on:
+      - postgres
+
+  ai:
+    build: ./ai-service
+    container_name: aerosync-ai
+    ports:
+      - "9002:9002"
+    environment:
+      - BACKEND_URL=http://backend:9001
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        - VITE_API_URL=http://localhost:9001
+        - VITE_WS_URL=http://localhost:9001
+        - VITE_AI_URL=http://localhost:9002
+    container_name: aerosync-frontend
+    ports:
+      - "9000:80"
+    depends_on:
+      - backend
+      - ai
+
+volumes:
+  postgres_data:

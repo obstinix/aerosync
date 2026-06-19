@@ -1,35 +1,51 @@
 import { db } from '../db/index.js';
-import { flights } from '../db/schema.js';
-import { eq } from 'drizzle-orm';
 
 /**
  * Initialize real-time WebSocket flight updates from database.
  * Emits flight:updated every 4 seconds with actual DB state.
  *
- * NOTE: better-sqlite3 + drizzle is synchronous — no await/.then needed on queries.
- *
  * @param {import('socket.io').Server} io
  */
 export function initFlightSocket(io) {
-  io.on('connection', (socket) => {
+  io.on('connection', async (socket) => {
     console.log(`[WS] Client connected: ${socket.id}`);
 
-    // Send full flight state immediately on connect (synchronous)
+    // Join default room
+    socket.join('hub:ALL');
+
+    // Send full flight state immediately on connect
     try {
-      const all = db.select().from(flights).all();
+      const all = await db.flight.findMany();
       socket.emit('flights:init', all);
     } catch (e) {
       console.error('[WS] flights:init error', e.message);
     }
 
+    // Join specific hub room
+    socket.on('hub:join', (hub) => {
+      // Leave other hub rooms
+      for (const room of socket.rooms) {
+        if (room.startsWith('hub:') && room !== `hub:${hub}`) {
+          socket.leave(room);
+        }
+      }
+      socket.join(`hub:${hub}`);
+      console.log(`[WS] Client ${socket.id} joined room hub:${hub}`);
+    });
+
     // Handle schedule update from drag-drop board
-    socket.on('schedule:update', ({ flightId, newSlot }) => {
+    socket.on('schedule:update', async ({ flightId, newSlot }) => {
       try {
-        const [updated] = db.update(flights)
-          .set({ estimatedDeparture: newSlot, updatedAt: new Date().toISOString() })
-          .where(eq(flights.id, flightId))
-          .returning();
-        io.emit('flight:updated', updated);
+        const updated = await db.flight.update({
+          where: { id: flightId },
+          data: { estimatedDeparture: newSlot, updatedAt: new Date().toISOString() }
+        });
+        
+        // Scope broadcast to specific hub rooms + ALL
+        io.to(`hub:${updated.origin}`)
+          .to(`hub:${updated.destination}`)
+          .to('hub:ALL')
+          .emit('flight:updated', updated);
       } catch (e) {
         console.error('[WS] schedule:update error', e);
         socket.emit('error', { message: 'Failed to update schedule' });
@@ -38,7 +54,7 @@ export function initFlightSocket(io) {
 
     // Handle disruption injection from simulator panel
     socket.on('disruption:inject', (data) => {
-      io.emit('disruption:injected', data);
+      io.to('hub:ALL').emit('disruption:injected', data);
     });
 
     socket.on('disconnect', () => {
@@ -47,17 +63,22 @@ export function initFlightSocket(io) {
   });
 
   // Poll DB and broadcast changed flights every 4 seconds
-  setInterval(() => {
+  setInterval(async () => {
     try {
-      const all = db.select().from(flights).all();
+      const all = await db.flight.findMany();
       for (const flight of all) {
         if (flight.progressPct < 1 && flight.status !== 'cancelled') {
-          const nextProgress = Math.min(1, flight.progressPct + 0.002);
-          db.update(flights)
-            .set({ progressPct: nextProgress })
-            .where(eq(flights.id, flight.id))
-            .run();
-          io.emit('flight:updated', { ...flight, progressPct: nextProgress });
+          const nextProgress = Math.min(1.0, flight.progressPct + 0.002);
+          const updated = await db.flight.update({
+            where: { id: flight.id },
+            data: { progressPct: nextProgress }
+          });
+          
+          // Scope broadcast to specific hub rooms + ALL
+          io.to(`hub:${updated.origin}`)
+            .to(`hub:${updated.destination}`)
+            .to('hub:ALL')
+            .emit('flight:updated', updated);
         }
       }
     } catch (e) {

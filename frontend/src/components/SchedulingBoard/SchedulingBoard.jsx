@@ -53,6 +53,24 @@ export default function SchedulingBoard() {
         if (res.ok) {
           const pred = await res.json();
           setPredictions(prev => ({ ...prev, [flight.id]: pred }));
+
+          // Persist to database
+          const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:9001';
+          const token = localStorage.getItem('aerosync_token');
+          const headers = { 'Content-Type': 'application/json' };
+          if (token) headers['Authorization'] = `Bearer ${token}`;
+
+          fetch(`${API_URL}/api/flights/${flight.id}/predictions`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              delayProbability: pred.delay_probability,
+              estimatedDelayMinutes: pred.estimated_delay_minutes,
+              confidence: pred.confidence,
+              reason: pred.reason,
+              modelVersion: pred.model_version,
+            }),
+          }).catch(err => console.error('[AI] Prediction persistence error:', err));
         }
       } catch (err) {
         console.error('[AI] Prediction fetch error:', err);

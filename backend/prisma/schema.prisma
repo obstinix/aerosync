@@ -1,0 +1,97 @@
+datasource db {
+  provider = "sqlite"
+  url = "file:../aerosync.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Flight {
+  id                 String             @id
+  flightNumber       String             @map("flight_number")
+  origin             String
+  destination        String
+  status             String             @default("scheduled")
+  scheduledDeparture String?            @map("scheduled_departure")
+  estimatedDeparture String?            @map("estimated_departure")
+  scheduledArrival   String?            @map("scheduled_arrival")
+  estimatedArrival   String?            @map("estimated_arrival")
+  gate               String?
+  aircraftType       String?            @map("aircraft_type")
+  cargoWeightKg      Float              @default(0) @map("cargo_weight_kg")
+  delayMinutes       Int                @default(0) @map("delay_minutes")
+  progressPct        Float              @default(0) @map("progress_pct")
+  lat                Float?
+  lon                Float?
+  createdAt          String?            @map("created_at")
+  updatedAt          String?            @map("updated_at")
+  cargoShipments     CargoShipment[]
+  delayPredictions   DelayPrediction[]
+
+  @@map("flights")
+}
+
+model CargoShipment {
+  id             String  @id
+  flightId       String? @map("flight_id")
+  flight         Flight? @relation(fields: [flightId], references: [id], onDelete: SetNull)
+  manifestNumber String  @map("manifest_number")
+  weightKg       Float   @map("weight_kg")
+  capacityKg     Float   @map("capacity_kg")
+  status         String  @default("loaded")
+  hazmat         Int     @default(0) // boolean 0|1 to match original DB design
+  priority       String  @default("standard")
+  updatedAt      String? @map("updated_at")
+
+  @@map("cargo")
+}
+
+model Disruption {
+  id                String  @id @default(uuid())
+  type              String
+  airport           String
+  severity          Int
+  description       String?
+  affectedFlightIds String? @map("affected_flight_ids") // JSON array stringified
+  injectedAt        String? @map("injected_at")
+  resolvedAt        String? @map("resolved_at")
+
+  @@map("disruptions")
+}
+
+model Alert {
+  id           String  @id @default(uuid())
+  severity     String
+  message      String
+  flightId     String? @map("flight_id")
+  disruptionId String? @map("disruption_id")
+  acknowledged Int     @default(0) // boolean 0|1
+  createdAt    String? @map("created_at")
+
+  @@map("alerts")
+}
+
+model DelayPrediction {
+  id                    String  @id @default(uuid())
+  flightId              String  @map("flight_id")
+  flight                Flight  @relation(fields: [flightId], references: [id], onDelete: Cascade)
+  delayProbability      Float   @map("delay_probability")
+  estimatedDelayMinutes Int     @map("estimated_delay_minutes")
+  confidence            Float
+  reason                String
+  modelVersion          String  @map("model_version")
+  createdAt             String? @map("created_at")
+
+  @@map("delay_predictions")
+}
+
+model User {
+  id           String  @id @default(uuid())
+  username     String  @unique
+  passwordHash String  @map("password_hash")
+  role         String  @default("operator")
+  createdAt    String? @map("created_at")
+
+  @@map("users")
+}

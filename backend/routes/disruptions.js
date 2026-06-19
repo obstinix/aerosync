@@ -1,12 +1,12 @@
 import { Router } from 'express';
 import { db } from '../db/index.js';
-import { disruptions, flights, alerts } from '../db/schema.js';
 import { randomUUID } from 'crypto';
-import { sql, eq } from 'drizzle-orm';
+import { authenticate } from '../middleware/auth.js';
+import { disruptionLimiter } from '../middleware/rateLimiter.js';
 
 const router = Router();
 
-router.post('/simulate', async (req, res, next) => {
+router.post('/simulate', authenticate, disruptionLimiter, async (req, res, next) => {
   try {
     const { type, airport, severity, description } = req.body;
     if (!type || !airport || !severity) {
@@ -16,41 +16,54 @@ router.post('/simulate', async (req, res, next) => {
       return res.status(400).json({ error: 'severity must be between 1 and 10' });
     }
 
-    // Find flights affected by this airport disruption
-    const affectedFlights = await db.select()
-      .from(flights)
-      .where(sql`${flights.origin} = ${airport} OR ${flights.destination} = ${airport}`)
-      .all();
+    // Find flights affected by this airport disruption using Prisma
+    const affectedFlights = await db.flight.findMany({
+      where: {
+        OR: [
+          { origin: airport },
+          { destination: airport }
+        ]
+      }
+    });
 
     const delayMinutesAdded = severity * 8; // 8 min per severity point
     const disruptionId = randomUUID();
 
     // Persist disruption
-    await db.insert(disruptions).values({
-      id: disruptionId,
-      type,
-      airport,
-      severity,
-      description: description || `${type} event at ${airport}`,
-      affectedFlightIds: JSON.stringify(affectedFlights.map(f => f.id)),
+    await db.disruption.create({
+      data: {
+        id: disruptionId,
+        type,
+        airport,
+        severity,
+        description: description || `${type} event at ${airport}`,
+        affectedFlightIds: JSON.stringify(affectedFlights.map(f => f.id)),
+        injectedAt: new Date().toISOString(),
+      }
     });
 
     // Update affected flights
     for (const flight of affectedFlights) {
-      await db.update(flights).set({
-        status: severity >= 7 ? 'critical' : 'delayed',
-        delayMinutes: Math.min(flight.delayMinutes + delayMinutesAdded, 240),
-        updatedAt: new Date().toISOString(),
-      }).where(eq(flights.id, flight.id));
+      await db.flight.update({
+        where: { id: flight.id },
+        data: {
+          status: severity >= 7 ? 'critical' : 'delayed',
+          delayMinutes: Math.min(flight.delayMinutes + delayMinutesAdded, 240),
+          updatedAt: new Date().toISOString(),
+        }
+      });
     }
 
     // Create an alert
     const alertId = randomUUID();
-    await db.insert(alerts).values({
-      id: alertId,
-      severity: severity >= 7 ? 'critical' : 'warning',
-      message: `${type.toUpperCase()} disruption at ${airport} — ${affectedFlights.length} flights affected`,
-      disruptionId,
+    await db.alert.create({
+      data: {
+        id: alertId,
+        severity: severity >= 7 ? 'critical' : 'warning',
+        message: `${type.toUpperCase()} disruption at ${airport} — ${affectedFlights.length} flights affected`,
+        disruptionId,
+        createdAt: new Date().toISOString(),
+      }
     });
 
     // Emit cascade event to all WS clients

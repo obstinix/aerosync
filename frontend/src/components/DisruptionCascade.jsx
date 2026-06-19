@@ -229,7 +229,7 @@ export default function DisruptionCascade({ cascadeData }) {
     node.filter(d => d.type === 'flight' && d.delay)
       .append('text')
       .text(d => `+${d.delay}m`)
-      .attr('dy', -d => d.radius - 6)
+      .attr('dy', d => -d.radius - 6)
       .attr('text-anchor', 'middle')
       .style('font-family', '"JetBrains Mono", monospace')
       .style('font-size', '8px')

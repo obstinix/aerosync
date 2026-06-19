@@ -1,26 +1,69 @@
 # Render Blueprint — AeroSync Production Deployment
-# https://render.com/docs/blueprint-spec
-
 services:
-  # Unified web service — backend serves the built frontend
+  # 1. Express Backend
   - type: web
-    name: aerosync
+    name: aerosync-backend
     runtime: node
-    region: oregon
     plan: free
+    region: oregon
     branch: main
-    buildCommand: |
-      npm install &&
-      cd frontend && npm install && npm run build && cd .. &&
-      cd backend && npm install && cd ..
-    startCommand: cd backend && node server.js
+    rootDir: backend
+    buildCommand: npm install && node prisma-setup.js
+    startCommand: npm run start
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 3001
+      - key: DATABASE_URL
+        fromDatabase:
+          name: aerosync-db
+          property: connectionString
       - key: CLIENT_URL
         value: https://aerosync-td50.onrender.com
-      - key: DB_PATH
-        value: /opt/render/project/src/aerosync.db
+      - key: JWT_SECRET
+        generateValue: true
+
+  # 2. AI Service
+  - type: web
+    name: aerosync-ai
+    runtime: python
+    plan: free
+    region: oregon
+    branch: main
+    rootDir: ai-service
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: BACKEND_URL
+        fromService:
+          type: web
+          name: aerosync-backend
+          property: host
+
+  # 3. Static Frontend
+  - type: web
+    name: aerosync-frontend
+    runtime: static
+    plan: free
+    region: oregon
+    branch: main
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: aerosync-backend
+          property: host
+      - key: VITE_AI_URL
+        fromService:
+          type: web
+          name: aerosync-ai
+          property: host
+
+databases:
+  - name: aerosync-db
+    plan: free
+    postgresVersion: 15

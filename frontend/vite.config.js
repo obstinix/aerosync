@@ -26,11 +26,11 @@ export default defineConfig({
   },
   preview: {
     host: '0.0.0.0',
-    port: 3000,
+    port: 9000,
     allowedHosts: ['aerosync-td50.onrender.com', 'all']
   },
   server: {
     host: '0.0.0.0',
-    port: 3000
+    port: 9000
   }
 })

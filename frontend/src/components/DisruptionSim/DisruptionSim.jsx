@@ -35,9 +35,14 @@ export default function DisruptionSim() {
   const handleInject = async () => {
     setLoading(true);
     try {
+      const token = localStorage.getItem('aerosync_token');
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
       const res = await fetch(`${API_URL}/api/disruptions/simulate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           type,
           airport,

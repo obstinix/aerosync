@@ -2,7 +2,7 @@
 
 **A full-stack, real-time aviation operations and cargo dispatch dashboard.**
 
-AeroSync is an aviation control dashboard built to monitor and orchestrate active flights, coordinate cargo manifests, and simulate disruption cascade events. The platform is designed around a three-tier production architecture: an Express + Socket.IO server backed by a SQLite database with Drizzle ORM, a FastAPI AI service running a trained Random Forest model for delay predictions, and a React frontend styled with custom SpaceX-derived design tokens and animations.
+AeroSync is an aviation control dashboard built to monitor and orchestrate active flights, coordinate cargo manifests, and simulate disruption cascade events. The platform is designed around a modern multi-tier production architecture: an Express + Socket.IO server utilizing Prisma Client (backed by PostgreSQL in production and local SQLite fallback), a FastAPI AI service running a trained Random Forest model for delay predictions and Server-Sent Events (SSE) chat streaming, and a React frontend styled with custom SpaceX-derived design tokens and animations.
 
 ---
 
@@ -10,26 +10,30 @@ AeroSync is an aviation control dashboard built to monitor and orchestrate activ
 
 ```mermaid
 graph TD
-  User((Operator Browser)) <-->|WebSocket & HTTP| Express[Express Server :9001]
-  Express <-->|Better-SQLite3| DB[(SQLite Database)]
-  User -->|HTTP POST| FastAPI[FastAPI AI Service :9002]
+  User((Operator Browser)) <-->|WebSocket & HTTP with JWT| Express[Express Server :9001]
+  Express <-->|Prisma Client| DB[(PostgreSQL / SQLite)]
+  User <-->|SSE Chat & HTTP| FastAPI[FastAPI AI Service :9002]
   FastAPI <-->|joblib| RF[Random Forest Model]
 ```
 
-### Production Architecture (Render)
-In production, the application runs as a **unified service**:
-- The **Express Backend** serves both the REST/WebSocket API and the built static assets of the **React Frontend** from the `frontend/dist` directory. This simplifies routing, eliminates CORS configuration issues in production, and reduces resource costs.
-- The **FastAPI AI Service** operates as a microservice, directly accessible by the frontend.
+### Production Architecture (Render Multi-Service Blueprint)
+In production, the application is deployed as a multi-service structure:
+- **Express Backend**: Connects to a managed Render PostgreSQL database instance via Prisma. Exposes the REST API and Socket.IO server.
+- **FastAPI AI Service**: Serves ML delay predictions and SSE streaming AI recovery chat recommendations.
+- **Static React Frontend**: Compiled via Vite and served as a high-performance static site (statically routed to the backend and AI microservices).
+- **PostgreSQL Database**: Persistent transactional storage for all operational and prediction data.
 
 ---
 
 ## Features
 
-- **Live Operations Monitoring**: Geospatial tracking via a dark CartoDB Leaflet map, displaying pulsing flight markers and route arcs. Ingests real-time events via an active WebSockets connection.
-- **System Metrics HUD**: Displays live active flights, delayed counts, on-time percentage, and cargo utilization rates.
+- **Live Operations Map**: Geospatial tracking via a dark CartoDB Leaflet map, displaying pulsing flight markers, route arcs, and active storm zones.
+- **System Metrics HUD**: Displays live active flights, delayed counts, on-time percentage, cargo utilization rates, and the Passenger Impact Counter.
 - **Runway Scheduling Board**: A runway timeline display mapping active flight blocks, integrating drag-and-drop slots and AI delay prediction advisories.
+- **What-If Sandbox Mode**: Enables operators to enter a scheduling sandbox, adjust slots locally, and view a visual prediction diff before saving.
+- **AI War Room**: Interactive recovery chat console side-by-side with a Leaflet map. Streams actionable recovery suggestions word-by-word via FastAPI SSE.
+- **Disruption Simulator & D3 Cascade**: Injects operational events (weather, security, equipment) at specific hubs and calculates cascading delays, visualized on a D3 force-directed network graph.
 - **Cargo Dispatch Intelligence**: Monitors manifest weights, priority status levels, and capacity limits.
-- **Disruption Simulator**: Simulates operational events (weather, security, equipment) at specific hubs and calculates cascade delay ripple impacts.
 
 ---
 
@@ -39,19 +43,34 @@ In production, the application runs as a **unified service**:
 aerosync/
 ├── ai-service/          # FastAPI AI Service (Python)
 │   ├── models/          # Trained Random Forest model & features
-│   ├── main.py          # FastAPI application server
-│   └── requirements.txt # Python dependency specification
+│   ├── main.py          # FastAPI application server (Predict + SSE Chat)
+│   ├── test_main.py     # python pytest suite
+│   └── Dockerfile       # Python container configuration
 ├── backend/             # Express API & WebSocket Server (Node)
-│   ├── db/              # SQLite database schema, seeding, & migrations
-│   ├── routes/          # API Route controllers (flights, cargo, disruptions)
-│   ├── sockets/         # Socket.IO connection & background ticker (4s)
-│   └── server.js        # Express application entrypoint
+│   ├── db/              # Database configuration (Prisma client)
+│   ├── middleware/      # Logger, JWT auth, and express-rate-limiters
+│   ├── prisma/          # Prisma schema & database seeds
+│   ├── routes/          # API Route controllers (flights, cargo, disruptions, auth)
+│   ├── sockets/         # Socket.IO connection (hub-scoped room routing)
+│   ├── tests/           # API integration tests using native Node test runner
+│   ├── server.js        # Express application entrypoint
+│   └── Dockerfile       # Node backend container configuration
 ├── frontend/            # React Client Application (Vite)
 │   ├── src/             # Component tree, styles, providers, and state stores
-│   └── vite.config.js   # Vite configuration with chunk-splitting
-├── render.yaml          # Render Blueprint deployment configuration
+│   ├── vite.config.js   # Vite configuration with chunk-splitting (ports: 9000)
+│   └── Dockerfile       # Multi-stage frontend container config (Nginx)
+├── docker-compose.yml   # Multi-container local orchestration spec
+├── render.yaml          # Render multi-service blueprint deployment configuration
 └── package.json         # Workspace configuration and workspace-wide scripts
 ```
+
+---
+
+## Security & API Hardening
+
+- **JWT Authentication**: All mutating routes (`POST`, `PATCH`, `DELETE`) require a valid JWT bearer token. The client automatically signs in using `POST /api/auth/demo-login` on start.
+- **Rate Limiting**: The `/api/disruptions/simulate` simulation injector is restricted to 5 requests per minute per IP using `express-rate-limit` to prevent denial-of-service.
+- **WebSocket Scoping**: WebSocket updates are routed to hub-specific rooms (`hub:JFK`, `hub:LHR`, etc.). Changing hubs on the frontend automatically switches rooms, preventing unnecessary network traffic.
 
 ---
 
@@ -59,101 +78,33 @@ aerosync/
 
 ### REST Endpoints (Backend - Port 9001)
 
-#### `GET /`
-Returns API metadata and service status.
-```json
-{
-  "name": "AeroSync API",
-  "version": "1.0.0",
-  "status": "operational",
-  "endpoints": {
-    "health": "/health",
-    "flights": "/api/flights",
-    "cargo": "/api/cargo",
-    "disruptions": "/api/disruptions/simulate"
-  }
-}
-```
+#### `POST /api/auth/demo-login`
+Issues a demo JWT bearer token for local development.
 
 #### `GET /health`
-Verifies server and SQLite database health. Returns status 200 on success.
+Verifies server and Prisma database connection health.
 ```json
-{ "status": "ok", "db": "ok", "ts": "2026-06-14T09:36:55.796Z" }
+{ "status": "ok", "db": "ok", "ts": "2026-06-19T09:36:55.796Z" }
 ```
 
 #### `GET /api/flights`
 Returns all active and scheduled flights.
-```json
-{
-  "flights": [
-    {
-      "id": "AE-102",
-      "flightNumber": "AE102",
-      "origin": "JFK",
-      "destination": "LHR",
-      "status": "on_time",
-      "progressPct": 0.35,
-      "delayMinutes": 0,
-      "scheduledDeparture": "2026-06-14T12:00:00Z"
-    }
-  ],
-  "count": 1
-}
-```
-
-#### `GET /api/flights/:id`
-Returns a single flight's details.
 
 #### `PATCH /api/flights/:id`
-Updates gate, status, or ETA of a flight. Broadcasts `flight:updated` WebSocket event.
+Updates gate, status, or ETA of a flight. Requires JWT token. Broadcasts to hub-scoped Socket.IO rooms.
 
-#### `GET /api/cargo`
-Returns all cargo manifest lists.
+#### `POST /api/flights/:id/predictions`
+Persists an AI delay prediction in the database.
 
 #### `POST /api/disruptions/simulate`
-Simulates a cascade disruption event at an airport.
-- **Payload**: `{ "type": "weather", "airport": "JFK", "severity": 8, "description": "Severe thunderstorm" }`
-- **Response**: `{ "disruptionId": "...", "affectedCount": 4, "estimatedTotalDelay": 256 }`
+Simulates a cascade disruption event at an airport. Requires JWT token. Limited to 5 req/min.
 
 ---
 
 ### REST Endpoints (AI Service - Port 9002)
 
-#### `GET /`
-Returns AI Service metadata, active endpoints, and docs link.
-```json
-{
-  "name": "AeroSync AI Service",
-  "version": "1.0.0",
-  "status": "operational",
-  "endpoints": {
-    "predict_delay": "POST /predict/delay",
-    "health": "GET /health"
-  },
-  "docs": "/docs"
-}
-```
-
-#### `GET /health`
-Checks model loading status.
-```json
-{ "status": "ok", "model_loaded": true }
-```
-
 #### `POST /predict/delay`
 Evaluates flight details against the Random Forest model and weather conditions.
-- **Payload**:
-  ```json
-  {
-    "airline_code": "AE",
-    "origin": "JFK",
-    "destination": "LHR",
-    "day_of_week": 1,
-    "departure_time": 1430,
-    "flight_length_min": 420,
-    "weather_score": 0.8
-  }
-  ```
 - **Response**:
   ```json
   {
@@ -165,93 +116,83 @@ Evaluates flight details against the Random Forest model and weather conditions.
   }
   ```
 
----
-
-### WebSocket Events
-
-| Event | Payload | Trigger |
-|---|---|---|
-| `flight:updated` | `{ id, status, progressPct, delayMinutes }` | Flight progress background ticker (4s) |
-| `cargo:updated` | `{ flightId, weightKg, utilization }` | Manifest change |
-| `alert:new` | `{ id, severity, message, timestamp }` | Operational event or disruption cascade |
-| `disruption:cascade` | `{ origin, affectedCount, estimatedTotalDelay }` | Disruption cascade ripple |
+#### `POST /chat`
+Streams Server-Sent Events (SSE) Markdown recovery suggestions for the AI War Room.
 
 ---
 
 ## Local Setup & Run Guide
 
-To prevent port conflicts with other projects running on ports `3000`, `3001`, or `5173`, the local servers are configured to use ports **`9000` (Frontend)**, **`9001` (Backend)**, and **`9002` (AI Service)**.
+To prevent port conflicts with other projects running on ports `3000`, `3001`, or `5173`, local servers are configured to use ports **`9000` (Frontend)**, **`9001` (Backend)**, and **`9002` (AI Service)**.
 
-### Prerequisites
-- **Node.js** >= 20.19.x (22.x recommended)
-- **Python** >= 3.9 (3.11 recommended)
-- **npm** >= 10.x
+### Option A: Running with Docker Compose (Recommended)
+Launch the entire system (including a local PostgreSQL database container) in one command:
+```bash
+docker-compose up --build
+```
+Open [http://localhost:9000/](http://localhost:9000/) to access the live dashboard.
 
----
+### Option B: Running Bare-Metal Locally
 
-### Step 1: Install Dependencies
+#### Step 1: Install Workspace Dependencies
 From the root directory:
 ```bash
 npm install
 ```
 
-### Step 2: Seed the Local Database
+#### Step 2: Initialize Database (SQLite Fallback)
 ```bash
-npm run seed --workspace=backend
+cd backend
+npm install
+node prisma-setup.js
+npx prisma db push
+npx prisma db seed
 ```
 
-### Step 3: Run the AI Service (FastAPI)
-Create a virtual environment, install requirements, and run the FastAPI server on port `9002`:
+#### Step 3: Run the AI Service (FastAPI)
 ```bash
 cd ai-service
-python3 -m venv venv
-source venv/bin/activate       # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 BACKEND_URL=http://localhost:9000 python3 -m uvicorn main:app --host 127.0.0.1 --port 9002
 ```
 
-### Step 4: Run the Backend Server (Express)
-In a new terminal window, configure the environment variables and run on port `9001`:
+#### Step 4: Run the Backend Server (Express)
 ```bash
 cd backend
-# Create environment file from template
-cp .env.example .env
-# Start server on custom port
 PORT=9001 CLIENT_URL=http://localhost:9000 node server.js
 ```
 
-### Step 5: Run the Frontend App (Vite React)
-In a new terminal window, direct the frontend to connect to custom ports `9001` and `9002`, then start on port `9000`:
+#### Step 5: Run the Frontend App (Vite React)
 ```bash
 cd frontend
-# Create environment file from template
 cp .env.example .env
-# Run Vite on port 9000
-VITE_API_URL=http://localhost:9001 VITE_WS_URL=http://localhost:9001 VITE_AI_URL=http://localhost:9002 npx vite --port 9000 --host 0.0.0.0
+npm run dev -- --port 9000
 ```
-
-Open [http://localhost:9000/](http://localhost:9000/) in your browser to view the live dashboard.
+Open [http://localhost:9000/](http://localhost:9000/) in your browser.
 
 ---
 
-## Production Deployment
+## Running Test Suites
 
-### Render Blueprint (Recommended)
-This repository contains a `render.yaml` spec that automatically provisions a web service. When pushed to GitHub:
-1. Render deploys the Node.js backend.
-2. It builds the frontend and places output assets into `frontend/dist`.
-3. The backend is configured to statically serve the frontend assets in production.
-4. No CORS issues arise because both serve from the same origin.
+From the root directory:
+- Run backend API integration tests:
+  ```bash
+  cd backend && npm run test
+  ```
+- Run AI service pytest suite:
+  ```bash
+  cd ai-service && python3 -m pytest
+  ```
 
-### Manual Production Build
-1. Build the frontend:
-   ```bash
-   cd frontend && npm install && npm run build
-   ```
-2. Start the backend:
-   ```bash
-   cd backend && npm install && NODE_ENV=production PORT=3001 node server.js
-   ```
+---
+
+## Production Deployment (Render)
+
+This repository contains a multi-service `render.yaml` Blueprint spec:
+1. Deploys the static client onto **aerosync-frontend** (Vite build served via static hosting).
+2. Provisions a managed **aerosync-db** PostgreSQL database.
+3. Deploys the Express server onto **aerosync-backend** running migrations automatically via `prisma-setup.js`.
+4. Deploys the Python FastAPI server onto **aerosync-ai**.
 
 ---
 

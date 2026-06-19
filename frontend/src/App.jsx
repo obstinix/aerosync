@@ -6,6 +6,7 @@ import { Sidebar } from './components/shared/Sidebar.jsx';
 import { ErrorBoundary } from './components/shared/ErrorBoundary.jsx';
 import { SocketProvider } from './providers/SocketProvider.jsx';
 import { SandboxProvider } from './contexts/SandboxContext.jsx';
+import { useEffect } from 'react';
 import './styles/tokens.css';
 import './App.css';
 
@@ -34,6 +35,24 @@ const pageVariants = {
 
 export default function App() {
   const location = useLocation();
+
+  useEffect(() => {
+    const login = async () => {
+      try {
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:9001';
+        const res = await fetch(`${API_URL}/api/auth/demo-login`, { method: 'POST' });
+        if (res.ok) {
+          const { token } = await res.json();
+          localStorage.setItem('aerosync_token', token);
+          console.log('[Auth] Demo login success, token cached.');
+        }
+      } catch (err) {
+        console.error('[Auth] Demo login error:', err);
+      }
+    };
+    login();
+  }, []);
+
   return (
     <SocketProvider>
     <SandboxProvider>

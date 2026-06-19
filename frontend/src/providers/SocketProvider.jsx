@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
+import useStore from '../store/useStore.js';
 
 const SocketContext = createContext(null);
 
@@ -12,7 +13,7 @@ const WS_URL = import.meta.env.VITE_WS_URL || 'http://localhost:3001';
 export function SocketProvider({ children }) {
   const socketRef = useRef(null);
   const [connected, setConnected] = useState(false);
-  const [clientCount, setClientCount] = useState(0);
+  const selectedHub = useStore((s) => s.selectedHub);
 
   useEffect(() => {
     const socket = io(WS_URL, {
@@ -37,8 +38,17 @@ export function SocketProvider({ children }) {
     return () => socket.disconnect();
   }, []);
 
+  // Sync selected hub room joining
+  useEffect(() => {
+    const socket = socketRef.current;
+    if (socket && connected) {
+      socket.emit('hub:join', selectedHub);
+      console.log('[WS] Emitted hub:join room for hub:', selectedHub);
+    }
+  }, [selectedHub, connected]);
+
   return (
-    <SocketContext.Provider value={{ socket: socketRef.current, connected, clientCount }}>
+    <SocketContext.Provider value={{ socket: socketRef.current, connected }}>
       {children}
     </SocketContext.Provider>
   );

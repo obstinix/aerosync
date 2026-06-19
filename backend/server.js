@@ -5,15 +5,13 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 import helmet from 'helmet';
 import { rateLimit } from 'express-rate-limit';
-import { sqlite } from './db/index.js';
+import { db } from './db/index.js';
 import flightsRouter from './routes/flights.js';
 import cargoRouter from './routes/cargo.js';
 import disruptionsRouter from './routes/disruptions.js';
+import authRouter from './routes/auth.js';
 import { initFlightSocket } from './sockets/flightSocket.js';
 import { requestLogger } from './middleware/logger.js';
-
-// Run migrations on startup
-import('./db/migrate.js');
 
 const app = express();
 const httpServer = createServer(app);
@@ -69,6 +67,7 @@ const mutationLimiter = rateLimit({
 });
 
 // Routes
+app.use('/api/auth', authRouter);
 app.use('/api/flights', flightsRouter);
 app.use('/api/cargo', cargoRouter);
 app.use('/api/disruptions', mutationLimiter, disruptionsRouter);
@@ -101,9 +100,9 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Health check — used by Render and monitoring
-app.get('/health', (req, res) => {
+app.get('/health', async (req, res) => {
   try {
-    sqlite.prepare('SELECT 1').get();
+    await db.$queryRaw`SELECT 1`;
     res.json({ status: 'ok', db: 'ok', ts: new Date().toISOString() });
   } catch (e) {
     res.status(503).json({ status: 'degraded', db: 'error', error: e.message });
