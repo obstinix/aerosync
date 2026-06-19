@@ -4,7 +4,7 @@ import { useSocket } from '../../providers/SocketProvider.jsx';
 import { useEffect, useState } from 'react';
 
 const links = [
-  { to: '/', label: 'OPERATIONS' },
+  { to: '/operations', label: 'OPERATIONS' },
   { to: '/scheduling', label: 'SCHEDULING' },
   { to: '/cargo', label: 'CARGO' },
   { to: '/simulator', label: 'DISRUPTIONS' },

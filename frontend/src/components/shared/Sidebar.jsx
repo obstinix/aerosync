@@ -3,7 +3,7 @@ import { Activity, Calendar, Package, AlertTriangle, BarChart2, Sparkles } from 
 
 export function Sidebar() {
   const links = [
-    { to: '/', label: 'Live Operations', icon: Activity },
+    { to: '/operations', label: 'Live Operations', icon: Activity },
     { to: '/scheduling', label: 'Gantt Timeline', icon: Calendar },
     { to: '/cargo', label: 'Cargo Intelligence', icon: Package },
     { to: '/simulator', label: 'Disruption Sim', icon: AlertTriangle },
