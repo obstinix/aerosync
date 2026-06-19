@@ -6,6 +6,7 @@ import { StatsPanel } from '../components/shared/StatsPanel.jsx';
 import { FlightList } from '../components/shared/FlightList.jsx';
 import { AlertFeed } from '../components/shared/AlertFeed.jsx';
 import ATCAudioWidget from '../components/ATCAudioWidget.jsx';
+import ErrorBoundary from '../components/ErrorBoundary.jsx';
 
 const AIRCRAFT_CAPACITY = {
   B777: 20000,
@@ -71,8 +72,31 @@ export default function DashboardPage() {
           overflow: 'hidden',
         }}>
           <div style={{ flex: 1, position: 'relative', minHeight: '300px' }}>
-            <GlobeView />
-            <FlightPopup />
+            <ErrorBoundary
+              fallback={
+                <div style={{
+                  height: '100%', width: '100%', display: 'flex', flexDirection: 'column',
+                  alignItems: 'center', justifyContent: 'center', background: '#0d0d0d',
+                  border: '1px solid #FF4444', color: '#FF4444', fontFamily: 'var(--font-display)',
+                  fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em'
+                }}>
+                  <span>Geospatial Feed Breakdown (WebGL/Map Context Loss)</span>
+                  <button
+                    onClick={() => window.location.reload()}
+                    style={{
+                      marginTop: '12px', padding: '4px 8px', background: 'transparent',
+                      border: '1px solid #FF4444', color: '#FF4444', cursor: 'pointer',
+                      fontSize: '10px', fontFamily: 'var(--font-data)'
+                    }}
+                  >
+                    Re-Init Stream
+                  </button>
+                </div>
+              }
+            >
+              <GlobeView />
+              <FlightPopup />
+            </ErrorBoundary>
           </div>
           <div style={{
             height: '280px',
