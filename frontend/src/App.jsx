@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'motion/react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { Suspense, lazy } from 'react';
 import { Navbar } from './components/shared/Navbar.jsx';
 import { Sidebar } from './components/shared/Sidebar.jsx';
@@ -11,6 +11,7 @@ import './styles/tokens.css';
 import './App.css';
 
 // Lazy load each page — CesiumJS is 2MB, don't load it upfront
+const Landing     = lazy(() => import('./pages/Landing.jsx'));
 const Dashboard   = lazy(() => import('./pages/DashboardPage.jsx'));
 const Scheduling  = lazy(() => import('./pages/SchedulingPage.jsx'));
 const CargoPanel  = lazy(() => import('./pages/CargoPage.jsx'));
@@ -35,6 +36,15 @@ const pageVariants = {
 
 export default function App() {
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const isLanding = location.pathname === '/';
+
+  useEffect(() => {
+    if (location.pathname === '/' && sessionStorage.getItem('onboarded') === '1') {
+      navigate('/operations');
+    }
+  }, [location.pathname, navigate]);
 
   useEffect(() => {
     const login = async () => {
@@ -65,14 +75,14 @@ export default function App() {
         fontFamily: '"Space Grotesk", sans-serif',
         overflow: 'hidden',
       }}>
-        <Navbar />
+        {!isLanding && <Navbar />}
         <div className="app-body" style={{
           display: 'flex',
           flex: 1,
           overflow: 'hidden',
-          paddingTop: 48,
+          paddingTop: isLanding ? 0 : 48,
         }}>
-          <Sidebar />
+          {!isLanding && <Sidebar />}
           <main className="app-main" style={{
             flex: 1,
             overflowY: 'auto',
@@ -83,6 +93,11 @@ export default function App() {
                 <AnimatePresence mode="wait">
                   <Routes location={location} key={location.pathname}>
                     <Route path="/" element={
+                      <motion.div {...pageVariants} style={{ height: '100%' }}>
+                        <Landing />
+                      </motion.div>
+                    } />
+                    <Route path="/operations" element={
                       <motion.div {...pageVariants} style={{ height: '100%' }}>
                         <Dashboard />
                       </motion.div>
