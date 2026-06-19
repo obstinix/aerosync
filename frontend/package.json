@@ -17,6 +17,7 @@
     "@rolldown/binding-darwin-x64": "^1.0.3",
     "@vitejs/plugin-react": "^6.0.1",
     "axios": "1.7.2",
+    "d3": "^7.9.0",
     "framer-motion": "^12.38.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",

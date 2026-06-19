@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSocket } from '../../providers/SocketProvider.jsx';
 import { AlertTriangle, ShieldAlert, Users, TrendingUp } from 'lucide-react';
+import DisruptionCascade from '../DisruptionCascade.jsx';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -217,8 +218,14 @@ export default function DisruptionSim() {
         </div>
       </div>
 
-      {/* Right Column: Statistics */}
+      {/* Right Column: D3 Cascade Visualization + Stats */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+        {/* D3 Cascade Graph */}
+        <div style={{ flex: 1, minHeight: '300px' }}>
+          <DisruptionCascade cascadeData={cascade} />
+        </div>
+
+        {/* Impact summary stats */}
         <div style={{
           background: 'var(--c-bg-secondary)',
           border: '1px solid var(--c-border)',
