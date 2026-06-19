@@ -5,6 +5,7 @@ import FlightPopup from '../components/Globe/FlightPopup';
 import { StatsPanel } from '../components/shared/StatsPanel.jsx';
 import { FlightList } from '../components/shared/FlightList.jsx';
 import { AlertFeed } from '../components/shared/AlertFeed.jsx';
+import ATCAudioWidget from '../components/ATCAudioWidget.jsx';
 
 const AIRCRAFT_CAPACITY = {
   B777: 20000,
@@ -124,6 +125,7 @@ export default function DashboardPage() {
 
       {/* Bottom Area: Stats Panel */}
       <StatsPanel stats={stats} flights={flights} />
+      <ATCAudioWidget />
     </div>
   );
 }

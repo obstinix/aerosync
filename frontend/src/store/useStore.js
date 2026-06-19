@@ -14,6 +14,8 @@ const useStore = create((set, get) => ({
   selectedFlight: null,
   setSelectedFlight: (flight) => set({ selectedFlight: flight }),
   clearSelectedFlight: () => set({ selectedFlight: null }),
+  selectedHub: 'ALL',
+  setSelectedHub: (hub) => set({ selectedHub: hub }),
 
   // Alerts
   alerts: generateAlerts(initialFlights),

@@ -3,12 +3,15 @@ import useFlightData from '../../hooks/useFlightData.js';
 import RunwayBoard from './RunwayBoard.jsx';
 import { Calendar, Cpu, MapPin } from 'lucide-react';
 
+import useStore from '../../store/useStore';
+
 const AI_URL = import.meta.env.VITE_AI_URL || 'http://localhost:8000';
 
 export default function SchedulingBoard() {
   const { flights, updateFlight, loading, error } = useFlightData();
   const [selectedFlightId, setSelectedFlightId] = useState(null);
-  const [hub, setHub] = useState('ALL');
+  const hub = useStore((s) => s.selectedHub);
+  const setHub = useStore((s) => s.setSelectedHub);
   const [predictions, setPredictions] = useState({});
   const [expandedPred, setExpandedPred] = useState(null);
 
