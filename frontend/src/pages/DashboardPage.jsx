@@ -123,7 +123,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Bottom Area: Stats Panel */}
-      <StatsPanel stats={stats} />
+      <StatsPanel stats={stats} flights={flights} />
     </div>
   );
 }

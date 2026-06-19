@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { useInView } from 'motion/react';
+import PassengerImpactCounter from '../PassengerImpactCounter.jsx';
 
 /**
  * Eased count-up from 0 → target over `duration` ms.
@@ -86,7 +87,7 @@ function StatCell({ label, value, accent = false, suffix = '', trigger }) {
  * Data-dense stats grid — Bloomberg terminal aesthetic.
  * @param {{ stats: { active: number, delayed: number, onTimePC: number, cargoUtil: number } }} props
  */
-export function StatsPanel({ stats }) {
+export function StatsPanel({ stats, flights = [] }) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, amount: 0.3 });
 
@@ -95,7 +96,7 @@ export function StatsPanel({ stats }) {
       ref={ref}
       style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
+        gridTemplateColumns: 'repeat(5, 1fr)',
         background: 'transparent',
         border: '1px solid rgba(255,255,255,0.06)',
         borderRadius: '0px',
@@ -124,13 +125,16 @@ export function StatsPanel({ stats }) {
           trigger={isInView}
         />
       </div>
-      <div>
+      <div style={{ borderRight: '1px solid rgba(255,255,255,0.06)' }}>
         <StatCell
           label="Cargo Util."
           value={stats.cargoUtil}
           suffix="%"
           trigger={isInView}
         />
+      </div>
+      <div>
+        <PassengerImpactCounter flights={flights} />
       </div>
     </div>
   );
