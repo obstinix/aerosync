@@ -1,85 +1,64 @@
-// ============================================
-// AeroSync — Realistic Mock Data
-// ============================================
+import { INDIAN_AIRPORTS, INDIAN_FLIGHTS } from '../data/indianFlights';
 
-export const AIRPORTS = {
-  JFK: { code: 'JFK', name: 'John F. Kennedy Intl', city: 'New York', lat: 40.6413, lng: -73.7781 },
-  LHR: { code: 'LHR', name: 'Heathrow', city: 'London', lat: 51.4700, lng: -0.4543 },
-  DXB: { code: 'DXB', name: 'Dubai Intl', city: 'Dubai', lat: 25.2532, lng: 55.3657 },
-  SIN: { code: 'SIN', name: 'Changi', city: 'Singapore', lat: 1.3644, lng: 103.9915 },
-  LAX: { code: 'LAX', name: 'Los Angeles Intl', city: 'Los Angeles', lat: 33.9425, lng: -118.4081 },
-};
+export const AIRPORTS = INDIAN_AIRPORTS.reduce((acc, airport) => {
+  acc[airport.iata] = {
+    code: airport.iata,
+    name: airport.name,
+    city: airport.city,
+    lat: airport.lat,
+    lng: airport.lon,
+    hub: airport.hub || false
+  };
+  return acc;
+}, {});
 
-export const AIRCRAFT_TYPES = ['B777-300ER', 'A380-800', 'B787-9', 'A350-900', 'B747-8F'];
-
-const statuses = ['on-time', 'delayed', 'cancelled', 'boarding', 'in-flight', 'landed'];
-const statusWeights = [0.45, 0.2, 0.05, 0.1, 0.15, 0.05];
-
-function weightedRandom(items, weights) {
-  const total = weights.reduce((a, b) => a + b, 0);
-  let r = Math.random() * total;
-  for (let i = 0; i < items.length; i++) {
-    r -= weights[i];
-    if (r <= 0) return items[i];
-  }
-  return items[items.length - 1];
-}
+export const AIRCRAFT_TYPES = ['B777-300ER', 'A321', 'B737', 'B787-9', 'A320'];
 
 function randomBetween(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function generateFlightId(index) {
-  const airlines = ['AS', 'AE', 'SY', 'NC'];
-  return `${airlines[index % airlines.length]}${String(1000 + index).slice(1)}`;
-}
-
-function generateETA() {
-  const now = new Date();
-  const hours = randomBetween(1, 12);
-  return new Date(now.getTime() + hours * 3600000).toISOString();
-}
-
-const airportCodes = Object.keys(AIRPORTS);
-
 export function generateFlights(count = 25) {
-  const flights = [];
-  for (let i = 0; i < count; i++) {
-    const originIdx = i % airportCodes.length;
-    let destIdx = (originIdx + randomBetween(1, 4)) % airportCodes.length;
-    const origin = airportCodes[originIdx];
-    const dest = airportCodes[destIdx];
-    const status = weightedRandom(statuses, statusWeights);
-    const aircraft = AIRCRAFT_TYPES[i % AIRCRAFT_TYPES.length];
-    const tailNumber = `N${randomBetween(100, 999)}${String.fromCharCode(65 + (i % 26))}${String.fromCharCode(65 + ((i + 3) % 26))}`;
-    const cargoWeight = randomBetween(2, 45);
-    const maxCargo = randomBetween(50, 80);
-    const delay = status === 'delayed' ? randomBetween(15, 180) : 0;
-    const passengers = randomBetween(120, 450);
+  return INDIAN_FLIGHTS.map((f, i) => {
+    const origin = f.origin;
+    const dest = f.destination;
+    const originData = AIRPORTS[origin];
+    const destinationData = AIRPORTS[dest];
+    const aircraft = f.airline === 'Air India' ? 'B777-300ER' : f.airline === 'IndiGo' ? 'A321' : f.airline === 'SpiceJet' ? 'B737' : 'A320';
+    const tailNumber = f.airline === 'Air India' ? `VT-AL${i}` : f.airline === 'IndiGo' ? `VT-IF${i}` : f.airline === 'SpiceJet' ? `VT-SG${i}` : `VT-IX${i}`;
+    const cargoWeight = Math.floor(Math.random() * 15) + 5;
+    const maxCargo = 20;
+    const delay = f.delay;
+    const passengers = f.pax;
+    const status = f.status;
 
-    flights.push({
-      id: generateFlightId(i),
+    return {
+      id: f.id,
+      flightNumber: f.callsign,
       origin,
       destination: dest,
-      originData: AIRPORTS[origin],
-      destinationData: AIRPORTS[dest],
+      originData,
+      destinationData,
       status,
       aircraft,
+      aircraftType: aircraft.split('-')[0],
       tailNumber,
       cargoWeight,
       maxCargo,
       cargoUtilization: Math.round((cargoWeight / maxCargo) * 100),
+      cargoWeightKg: cargoWeight * 1000,
       passengers,
       delay,
-      eta: generateETA(),
-      departureTime: new Date(Date.now() - randomBetween(0, 8) * 3600000).toISOString(),
-      scheduledDeparture: new Date(Date.now() + randomBetween(-2, 10) * 3600000).toISOString(),
-      scheduledArrival: new Date(Date.now() + randomBetween(2, 14) * 3600000).toISOString(),
-      gate: `${String.fromCharCode(65 + randomBetween(0, 5))}${randomBetween(1, 40)}`,
-      progress: status === 'in-flight' ? randomBetween(10, 90) : status === 'landed' ? 100 : 0,
-    });
-  }
-  return flights;
+      delayMinutes: delay,
+      progressPct: status === 'on-time' ? 0 : status === 'delayed' ? 0.1 : status === 'critical' ? 0.3 : 0,
+      eta: new Date(Date.now() + 2 * 3600000).toISOString(),
+      departureTime: new Date(Date.now() - 30 * 60000).toISOString(),
+      scheduledDeparture: new Date(Date.now() - 30 * 60000).toISOString(),
+      scheduledArrival: new Date(Date.now() + 2 * 3600000).toISOString(),
+      gate: `G${i+1}`,
+      progress: status === 'on-time' ? 0 : status === 'delayed' ? 10 : status === 'critical' ? 30 : 0,
+    };
+  });
 }
 
 export function generateAlerts(flights) {
@@ -126,55 +105,37 @@ export function generateAISuggestions() {
     {
       id: 'ai-1',
       type: 'reschedule',
-      title: 'Reschedule AS000 to avoid storm zone',
+      title: 'Reschedule AI-101 to avoid storm zone',
       description: 'Divert via southern corridor to avoid tropical storm HELENE. Adds 45 min but eliminates turbulence risk.',
       confidence: 92,
       impact: '+45 min, -$2,300 fuel',
-      affectedFlights: ['AS000'],
+      affectedFlights: ['AI-101'],
     },
     {
       id: 'ai-2',
       type: 'swap',
-      title: 'Swap aircraft AS001 ↔ AE002',
-      description: 'B777-300ER on AS001 route has excess capacity. Swap with A350-900 on AE002 to optimize fuel burn.',
+      title: 'Swap aircraft 6E-201 ↔ SG-301',
+      description: 'A321 on 6E-201 route has excess capacity. Swap with B737 on SG-301 to optimize fuel burn.',
       confidence: 87,
       impact: '-$4,100 fuel savings',
-      affectedFlights: ['AS001', 'AE002'],
+      affectedFlights: ['6E-201', 'SG-301'],
     },
     {
       id: 'ai-3',
       type: 'consolidate',
-      title: 'Consolidate cargo SY003 + NC004',
-      description: 'Both flights to DXB are under 40% cargo. Consolidate into single load on SY003 to free NC004 for maintenance window.',
+      title: 'Consolidate cargo AI-202 + 6E-401',
+      description: 'Both flights to DEL are under 40% cargo. Consolidate into single load on AI-202 to free 6E-401 for maintenance window.',
       confidence: 78,
       impact: '+$12,500 revenue optimization',
-      affectedFlights: ['SY003', 'NC004'],
-    },
-    {
-      id: 'ai-4',
-      type: 'reroute',
-      title: 'Optimize LHR→SIN routing',
-      description: 'Jetstream analysis shows 15kt tailwind on alternate FL380 route. Saves 22 minutes and 800kg fuel.',
-      confidence: 94,
-      impact: '-22 min, -$1,900 fuel',
-      affectedFlights: ['AE006'],
-    },
-    {
-      id: 'ai-5',
-      type: 'delay',
-      title: 'Strategic delay AS008 by 30 min',
-      description: 'Connecting passengers from delayed LHR arrival. Holding 30 min prevents 47 passenger rebookings ($18,000).',
-      confidence: 81,
-      impact: '+30 min, saves $18,000',
-      affectedFlights: ['AS008'],
+      affectedFlights: ['AI-202', '6E-401'],
     },
   ];
 }
 
 export const STORM_ZONES = [
-  { id: 'storm-1', center: [30, -60], radius: 8, severity: 'severe', name: 'Tropical Storm HELENE' },
-  { id: 'storm-2', center: [15, 75], radius: 5, severity: 'moderate', name: 'Monsoon Band' },
-  { id: 'storm-3', center: [55, 10], radius: 4, severity: 'light', name: 'North Sea Low' },
+  { id: 'storm-1', center: [20, 78], radius: 6, severity: 'severe', name: 'Monsoon Depression B1' },
+  { id: 'storm-2', center: [15, 75], radius: 5, severity: 'moderate', name: 'Western Ghats Turb' },
+  { id: 'storm-3', center: [22, 86], radius: 4, severity: 'light', name: 'Kolkata Squall' },
 ];
 
 export const DISRUPTION_TYPES = [
