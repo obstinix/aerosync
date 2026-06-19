@@ -25,6 +25,7 @@
     "react-dom": "^19.2.5",
     "react-leaflet": "^5.0.0",
     "react-router-dom": "^7.14.1",
+    "recharts": "^3.8.1",
     "socket.io-client": "4.7.5",
     "swr": "2.2.5",
     "vite": "^8.0.9",

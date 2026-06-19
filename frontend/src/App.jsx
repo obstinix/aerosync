@@ -13,6 +13,7 @@ const Dashboard   = lazy(() => import('./pages/DashboardPage.jsx'));
 const Scheduling  = lazy(() => import('./pages/SchedulingPage.jsx'));
 const CargoPanel  = lazy(() => import('./pages/CargoPage.jsx'));
 const Simulator   = lazy(() => import('./pages/DisruptionPage.jsx'));
+const Analytics   = lazy(() => import('./pages/Analytics.jsx'));
 
 const PageLoader = () => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -77,6 +78,11 @@ export default function App() {
                     <Route path="/simulator" element={
                       <motion.div {...pageVariants} style={{ height: '100%' }}>
                         <Simulator />
+                      </motion.div>
+                    } />
+                    <Route path="/analytics" element={
+                      <motion.div {...pageVariants} style={{ height: '100%' }}>
+                        <Analytics />
                       </motion.div>
                     } />
                   </Routes>

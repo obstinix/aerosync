@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Activity, Calendar, Package, AlertTriangle } from 'lucide-react';
+import { Activity, Calendar, Package, AlertTriangle, BarChart2 } from 'lucide-react';
 
 export function Sidebar() {
   const links = [
@@ -7,6 +7,7 @@ export function Sidebar() {
     { to: '/scheduling', label: 'Gantt Timeline', icon: Calendar },
     { to: '/cargo', label: 'Cargo Intelligence', icon: Package },
     { to: '/simulator', label: 'Disruption Sim', icon: AlertTriangle },
+    { to: '/analytics', label: 'Operations Analytics', icon: BarChart2 },
   ];
 
   return (
