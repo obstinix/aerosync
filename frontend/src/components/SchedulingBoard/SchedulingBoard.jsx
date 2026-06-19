@@ -1,7 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import useFlightData from '../../hooks/useFlightData.js';
 import RunwayBoard from './RunwayBoard.jsx';
-import { Calendar, Cpu, MapPin } from 'lucide-react';
+import { Calendar, Cpu, MapPin, Download } from 'lucide-react';
+import Papa from 'papaparse';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
 
 import useStore from '../../store/useStore';
 
@@ -56,6 +59,65 @@ export default function SchedulingBoard() {
     return flights.find(f => f.id === selectedFlightId);
   }, [flights, selectedFlightId]);
 
+  const exportCSV = () => {
+    const csv = Papa.unparse(filteredFlights);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `scheduling_manifest_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportPDF = () => {
+    const doc = new jsPDF();
+    doc.setFillColor(0, 0, 0);
+    doc.rect(0, 0, 210, 30, 'F');
+    doc.setTextColor(0, 212, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.text('AEROSYNC OPERATIONS FLIGHT BRIEFING', 14, 20);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(150, 150, 150);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 40);
+
+    const tableData = filteredFlights.map((f) => [
+      f.id,
+      f.flightNumber,
+      f.origin,
+      f.destination,
+      f.aircraftType,
+      f.status.toUpperCase(),
+      f.delayMinutes ? `${f.delayMinutes}m` : '0m',
+      f.scheduledDeparture,
+    ]);
+
+    doc.autoTable({
+      startY: 45,
+      head: [['ID', 'Flight #', 'Origin', 'Dest', 'Aircraft', 'Status', 'Delay', 'Scheduled']],
+      body: tableData,
+      headStyles: {
+        fillColor: [0, 212, 255],
+        textColor: [0, 0, 0],
+        fontStyle: 'bold',
+      },
+      bodyStyles: {
+        fillColor: [13, 13, 13],
+        textColor: [245, 245, 245],
+      },
+      alternateRowStyles: {
+        fillColor: [20, 20, 20],
+      },
+      theme: 'grid',
+    });
+
+    doc.save(`flight_schedule_${new Date().toISOString().slice(0, 10)}.pdf`);
+  };
+
   return (
     <div style={{
       display: 'grid',
@@ -108,6 +170,47 @@ export default function SchedulingBoard() {
             <span style={{ fontFamily: 'var(--font-data)', fontSize: 'var(--text-xs)', color: 'var(--c-muted)' }}>
               TODAY'S OPERATIONS
             </span>
+          </div>
+
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 'var(--space-2)' }}>
+            <button
+              onClick={exportCSV}
+              title="Export CSV"
+              style={{
+                background: 'transparent',
+                border: '1px solid var(--c-border-hi)',
+                borderRadius: 'var(--r-md)',
+                color: 'var(--c-sky)',
+                padding: '4px 8px',
+                fontSize: 'var(--text-xs)',
+                fontFamily: 'var(--font-data)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              <Download size={14} /> CSV
+            </button>
+            <button
+              onClick={exportPDF}
+              title="Export PDF"
+              style={{
+                background: 'transparent',
+                border: '1px solid var(--c-border-hi)',
+                borderRadius: 'var(--r-md)',
+                color: 'var(--c-sky)',
+                padding: '4px 8px',
+                fontSize: 'var(--text-xs)',
+                fontFamily: 'var(--font-data)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              <Download size={14} /> PDF
+            </button>
           </div>
         </div>
 

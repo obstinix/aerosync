@@ -1,5 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Package, ShieldAlert, TrendingUp } from 'lucide-react';
+import { Package, ShieldAlert, TrendingUp, Download } from 'lucide-react';
+import Papa from 'papaparse';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -32,11 +35,69 @@ export default function CargoPanel() {
   }, [cargoList, filter]);
 
   const stats = useMemo(() => {
-    const total = cargoList.reduce((sum, c) => sum + c.weightKg, 0) / 1000;
-    const overloaded = cargoList.filter(c => (c.weightKg / c.capacityKg) > 0.9).length;
-    const risk = cargoList.filter(c => c.status === 'damaged' || c.status === 'overweight').length;
-    return { total: total.toFixed(1), overloaded, risk };
+    const total = Math.round(cargoList.reduce((acc, m) => acc + (m.weightKg || 0), 0) / 1000); // in tons
+    const overloaded = cargoList.filter(m => (m.weightKg / m.capacityKg) > 0.9).length;
+    const risk = cargoList.filter(m => m.priority === 'express' && m.status !== 'loaded').length;
+    return { total, overloaded, risk };
   }, [cargoList]);
+
+  const exportCSV = () => {
+    const csv = Papa.unparse(filtered);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `cargo_manifest_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportPDF = () => {
+    const doc = new jsPDF();
+    doc.setFillColor(0, 0, 0);
+    doc.rect(0, 0, 210, 30, 'F');
+    doc.setTextColor(0, 212, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.text('AEROSYNC CARGO OPERATIONS BRIEFING', 14, 20);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(150, 150, 150);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 40);
+
+    const tableData = filtered.map((c) => [
+      c.id,
+      c.flightId,
+      c.manifestNumber,
+      `${c.weightKg} kg`,
+      `${c.capacityKg} kg`,
+      c.status.toUpperCase(),
+      c.priority.toUpperCase(),
+    ]);
+
+    doc.autoTable({
+      startY: 45,
+      head: [['Cargo ID', 'Flight ID', 'Manifest #', 'Weight', 'Capacity', 'Status', 'Priority']],
+      body: tableData,
+      headStyles: {
+        fillColor: [0, 212, 255],
+        textColor: [0, 0, 0],
+        fontStyle: 'bold',
+      },
+      bodyStyles: {
+        fillColor: [13, 13, 13],
+        textColor: [245, 245, 245],
+      },
+      alternateRowStyles: {
+        fillColor: [20, 20, 20],
+      },
+      theme: 'grid',
+    });
+
+    doc.save(`cargo_manifest_${new Date().toISOString().slice(0, 10)}.pdf`);
+  };
 
   if (loading) {
     return (
@@ -91,14 +152,14 @@ export default function CargoPanel() {
 
         {/* Cargo manifest table */}
         <div style={{ background: 'var(--c-bg-secondary)', border: '1px solid var(--c-border)', borderRadius: 'var(--r-lg)', overflow: 'hidden', display: 'flex', flexDirection: 'column', flex: 1 }}>
-          <div style={{ padding: 'var(--space-3)', borderBottom: '1px solid var(--c-border)', background: 'var(--c-bg-tertiary)' }}>
+          <div style={{ padding: 'var(--space-3)', borderBottom: '1px solid var(--c-border)', background: 'var(--c-bg-tertiary)', display: 'flex', gap: 'var(--space-2)' }}>
             <input
               type="text"
               placeholder="Search manifests by flight, manifest number, or priority..."
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
               style={{
-                width: '100%',
+                flex: 1,
                 background: 'var(--c-bg-primary)',
                 border: '1px solid var(--c-border-hi)',
                 borderRadius: 'var(--r-md)',
@@ -109,6 +170,44 @@ export default function CargoPanel() {
                 outline: 'none',
               }}
             />
+            <button
+              onClick={exportCSV}
+              title="Export CSV"
+              style={{
+                background: 'transparent',
+                border: '1px solid var(--c-border-hi)',
+                borderRadius: 'var(--r-md)',
+                color: 'var(--c-sky)',
+                padding: '6px 12px',
+                fontSize: 'var(--text-xs)',
+                fontFamily: 'var(--font-data)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              <Download size={14} /> CSV
+            </button>
+            <button
+              onClick={exportPDF}
+              title="Export PDF"
+              style={{
+                background: 'transparent',
+                border: '1px solid var(--c-border-hi)',
+                borderRadius: 'var(--r-md)',
+                color: 'var(--c-sky)',
+                padding: '6px 12px',
+                fontSize: 'var(--text-xs)',
+                fontFamily: 'var(--font-data)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              <Download size={14} /> PDF
+            </button>
           </div>
           <div style={{ overflowX: 'auto', flex: 1 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-xs)' }}>
