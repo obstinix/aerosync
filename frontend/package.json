@@ -20,6 +20,7 @@
     "axios": "1.7.2",
     "d3": "^7.9.0",
     "framer-motion": "^12.38.0",
+    "globe.gl": "^2.46.1",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
     "leaflet": "^1.9.4",
