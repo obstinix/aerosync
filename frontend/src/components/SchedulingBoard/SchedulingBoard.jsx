@@ -1,12 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import useFlightData from '../../hooks/useFlightData.js';
 import RunwayBoard from './RunwayBoard.jsx';
-import { Calendar, Cpu, MapPin, Download } from 'lucide-react';
+import { Calendar, Cpu, MapPin, Download, FlaskConical, X } from 'lucide-react';
 import Papa from 'papaparse';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 
 import useStore from '../../store/useStore';
+import { useSandbox } from '../../contexts/SandboxContext.jsx';
 
 const AI_URL = import.meta.env.VITE_AI_URL || 'http://localhost:8000';
 
@@ -17,12 +18,16 @@ export default function SchedulingBoard() {
   const setHub = useStore((s) => s.setSelectedHub);
   const [predictions, setPredictions] = useState({});
   const [expandedPred, setExpandedPred] = useState(null);
+  const [showDiff, setShowDiff] = useState(false);
+  const { isSandbox, enterSandbox, exitSandbox, sandboxFlights, diff } = useSandbox();
+
+  const activeFlights = isSandbox ? sandboxFlights : flights;
 
   const filteredFlights = useMemo(() => {
-    if (!flights) return [];
-    if (hub === 'ALL') return flights;
-    return flights.filter(f => f.origin === hub || f.destination === hub);
-  }, [flights, hub]);
+    if (!activeFlights) return [];
+    if (hub === 'ALL') return activeFlights;
+    return activeFlights.filter(f => f.origin === hub || f.destination === hub);
+  }, [activeFlights, hub]);
 
   // Fetch AI prediction for flights when they load
   useEffect(() => {
@@ -173,6 +178,52 @@ export default function SchedulingBoard() {
           </div>
 
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 'var(--space-2)' }}>
+            <button
+              onClick={() => {
+                if (isSandbox) {
+                  setShowDiff(true);
+                } else {
+                  enterSandbox(flights);
+                }
+              }}
+              title={isSandbox ? 'View Changes' : 'Enter What-If Sandbox'}
+              style={{
+                background: isSandbox ? 'rgba(0,212,255,0.12)' : 'transparent',
+                border: `1px solid ${isSandbox ? 'var(--c-sky)' : 'var(--c-border-hi)'}`,
+                borderRadius: 'var(--r-md)',
+                color: isSandbox ? 'var(--c-sky)' : 'var(--c-amber)',
+                padding: '4px 8px',
+                fontSize: 'var(--text-xs)',
+                fontFamily: 'var(--font-data)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              <FlaskConical size={14} /> {isSandbox ? `DIFF (${diff.length})` : 'WHAT-IF'}
+            </button>
+            {isSandbox && (
+              <button
+                onClick={exitSandbox}
+                title="Exit Sandbox"
+                style={{
+                  background: 'rgba(255,68,68,0.1)',
+                  border: '1px solid rgba(255,68,68,0.3)',
+                  borderRadius: 'var(--r-md)',
+                  color: 'var(--c-red)',
+                  padding: '4px 8px',
+                  fontSize: 'var(--text-xs)',
+                  fontFamily: 'var(--font-data)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+              >
+                <X size={14} /> EXIT
+              </button>
+            )}
             <button
               onClick={exportCSV}
               title="Export CSV"
@@ -363,6 +414,108 @@ export default function SchedulingBoard() {
           </div>
         )}
       </div>
+
+      {/* Sandbox mode indicator banner */}
+      {isSandbox && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 3,
+          background: 'linear-gradient(90deg, var(--c-sky) 0%, var(--c-amber) 50%, var(--c-sky) 100%)',
+          zIndex: 9999,
+        }} />
+      )}
+
+      {/* Diff Modal */}
+      {showDiff && (
+        <div
+          onClick={() => setShowDiff(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.7)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'var(--c-bg-secondary)',
+              border: '1px solid var(--c-border-hi)',
+              borderRadius: 'var(--r-lg)',
+              padding: 'var(--space-4)',
+              minWidth: 420,
+              maxWidth: 600,
+              maxHeight: '80vh',
+              overflowY: 'auto',
+            }}
+          >
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 'var(--space-3)',
+              borderBottom: '1px solid var(--c-border)',
+              paddingBottom: 'var(--space-2)',
+            }}>
+              <h3 style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 'var(--text-sm)',
+                fontWeight: 700,
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+              }}>
+                <FlaskConical size={16} color="var(--c-sky)" /> SANDBOX CHANGES
+              </h3>
+              <button
+                onClick={() => setShowDiff(false)}
+                style={{ background: 'none', border: 'none', color: 'var(--c-muted)', cursor: 'pointer' }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {diff.length === 0 ? (
+              <div style={{ fontFamily: 'var(--font-data)', fontSize: 'var(--text-xs)', color: 'var(--c-muted)', textAlign: 'center', padding: 'var(--space-8)' }}>
+                NO CHANGES DETECTED — MODIFY FLIGHT SCHEDULES TO SEE DIFFS
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                {diff.map((d, i) => (
+                  <div
+                    key={`${d.id}-${d.field}-${i}`}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '80px 90px 1fr 1fr',
+                      gap: 'var(--space-2)',
+                      padding: 'var(--space-2)',
+                      background: 'var(--c-bg-tertiary)',
+                      borderRadius: 'var(--r-md)',
+                      border: '1px solid var(--c-border)',
+                      fontSize: '11px',
+                      fontFamily: 'var(--font-data)',
+                    }}
+                  >
+                    <span style={{ color: 'var(--c-sky)', fontWeight: 600 }}>{d.id}</span>
+                    <span style={{ color: 'var(--c-muted)', textTransform: 'uppercase' }}>{d.field}</span>
+                    <span style={{ color: 'var(--c-red)', textDecoration: 'line-through' }}>{d.original || '—'}</span>
+                    <span style={{ color: 'var(--c-green)' }}>{d.modified || '—'}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

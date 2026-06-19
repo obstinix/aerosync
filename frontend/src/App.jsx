@@ -5,6 +5,7 @@ import { Navbar } from './components/shared/Navbar.jsx';
 import { Sidebar } from './components/shared/Sidebar.jsx';
 import { ErrorBoundary } from './components/shared/ErrorBoundary.jsx';
 import { SocketProvider } from './providers/SocketProvider.jsx';
+import { SandboxProvider } from './contexts/SandboxContext.jsx';
 import './styles/tokens.css';
 import './App.css';
 
@@ -14,6 +15,7 @@ const Scheduling  = lazy(() => import('./pages/SchedulingPage.jsx'));
 const CargoPanel  = lazy(() => import('./pages/CargoPage.jsx'));
 const Simulator   = lazy(() => import('./pages/DisruptionPage.jsx'));
 const Analytics   = lazy(() => import('./pages/Analytics.jsx'));
+const WarRoom     = lazy(() => import('./pages/WarRoom.jsx'));
 
 const PageLoader = () => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -34,6 +36,7 @@ export default function App() {
   const location = useLocation();
   return (
     <SocketProvider>
+    <SandboxProvider>
       <div className="app-shell" style={{
         display: 'flex',
         flexDirection: 'column',
@@ -85,6 +88,11 @@ export default function App() {
                         <Analytics />
                       </motion.div>
                     } />
+                    <Route path="/warroom" element={
+                      <motion.div {...pageVariants} style={{ height: '100%' }}>
+                        <WarRoom />
+                      </motion.div>
+                    } />
                   </Routes>
                 </AnimatePresence>
               </Suspense>
@@ -92,6 +100,7 @@ export default function App() {
           </main>
         </div>
       </div>
+    </SandboxProvider>
     </SocketProvider>
   );
 }
