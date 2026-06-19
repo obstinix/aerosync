@@ -13,6 +13,7 @@
     "typescript": "~6.0.2"
   },
   "dependencies": {
+    "@floating-ui/react": "^0.27.19",
     "@radix-ui/react-dialog": "1.1.7",
     "@radix-ui/react-tooltip": "1.1.8",
     "@rolldown/binding-darwin-x64": "^1.0.3",
