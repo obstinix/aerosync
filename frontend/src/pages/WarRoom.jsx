@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import useFlightData from '../hooks/useFlightData.js';
-import GlobeView from '../components/Globe/GlobeView.jsx';
+import Globe3D from '../components/Globe3D.jsx';
+import { AIRPORTS } from '../store/mockData.js';
 import { Send, Bot, User, ShieldAlert, Sparkles, Terminal } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
@@ -111,7 +112,7 @@ export default function WarRoom() {
         height: '100%',
         borderRight: '1px solid var(--c-border)',
       }}>
-        <GlobeView />
+        <Globe3D flights={flights} airports={Object.values(AIRPORTS)} />
         <div style={{
           position: 'absolute',
           top: 'var(--space-4)',
