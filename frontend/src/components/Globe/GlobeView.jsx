@@ -27,6 +27,10 @@ const ACCENT = '#00D4FF';
  * Interpolate N points along a great-circle-ish path between two coords.
  * Gives a slight curve so arcs don't look like straight lines at low zoom.
  */
+/**
+ * Interpolate N points along a great-circle-ish path between two coords.
+ * Gives a slight curve so arcs don't look like straight lines at low zoom.
+ */
 function arcPoints(lat1, lng1, lat2, lng2, segments = 32) {
   const pts = [];
   for (let i = 0; i <= segments; i++) {
@@ -37,6 +41,16 @@ function arcPoints(lat1, lng1, lat2, lng2, segments = 32) {
     ]);
   }
   return pts;
+}
+
+function isFlightInStorm(pos, storms) {
+  if (!pos || !storms || storms.length === 0) return false;
+  const [lat, lon] = pos;
+  return storms.some(storm => {
+    const [slat, slng] = storm.center;
+    const dist = Math.sqrt(Math.pow(lat - slat, 2) + Math.pow(lon - slng, 2));
+    return dist <= storm.radius;
+  });
 }
 
 export default function GlobeView() {
@@ -52,10 +66,15 @@ export default function GlobeView() {
         const o = AIRPORTS[flight.origin];
         const d = AIRPORTS[flight.destination];
         if (!o || !d) return null;
+        const midpoint = [(o.lat + d.lat) / 2, (o.lng + d.lng) / 2];
+        const currentPos = (flight.lat !== undefined && flight.lat !== null && flight.lon !== undefined && flight.lon !== null)
+          ? [Number(flight.lat), Number(flight.lon)]
+          : midpoint;
         return {
           flight,
           positions: arcPoints(o.lat, o.lng, d.lat, d.lng),
-          midpoint: [(o.lat + d.lat) / 2, (o.lng + d.lng) / 2],
+          midpoint,
+          currentPos,
         };
       })
       .filter(Boolean);
@@ -83,6 +102,14 @@ export default function GlobeView() {
           animation: aero-pulse 2s ease-in-out infinite;
           transform-origin: center;
         }
+        @keyframes storm-pulse {
+          0% { stroke-width: 2px; stroke-opacity: 0.8; }
+          100% { stroke-width: 16px; stroke-opacity: 0; }
+        }
+        .leaflet-interactive.storm-pulse-ring {
+          animation: storm-pulse 1.8s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+          transform-origin: center;
+        }
         /* Remove any default Leaflet chrome that breaks full-bleed */
         .leaflet-container {
           background: #000 !important;
@@ -97,6 +124,19 @@ export default function GlobeView() {
         attributionControl={true}
       >
         <TileLayer url={TILE_URL} attribution={TILE_ATTRIBUTION} />
+
+        {/* ---- Precipitation Radar Overlay ---- */}
+        {showWeather && (
+          <TileLayer
+            url={
+              import.meta.env.VITE_OPENWEATHER_API_KEY
+                ? `https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${import.meta.env.VITE_OPENWEATHER_API_KEY}`
+                : 'https://tilecache.rainviewer.com/v2/radar/default/256/{z}/{x}/{y}/2/0_0.png'
+            }
+            opacity={0.45}
+            zIndex={10}
+          />
+        )}
 
         {/* ---- Storm / weather zones ---- */}
         {stormCircles.map((storm) => {
@@ -181,39 +221,59 @@ export default function GlobeView() {
         })}
 
         {/* ---- Flight dot markers ---- */}
-        {flightArcs.map(({ flight, midpoint }) => (
-          <CircleMarker
-            key={`dot-${flight.id}`}
-            center={midpoint}
-            radius={5}
-            className="aero-pulse"
-            pathOptions={{
-              color: ACCENT,
-              fillColor: ACCENT,
-              fillOpacity: 1,
-              weight: 0,
-            }}
-            eventHandlers={{
-              click: () => setSelectedFlight(flight),
-            }}
-          >
-            <Popup>
-              <span
-                style={{
-                  fontFamily: '"JetBrains Mono", monospace',
-                  fontSize: 11,
-                  color: '#F5F5F5',
+        {flightArcs.map(({ flight, currentPos }) => {
+          const inStorm = showWeather && isFlightInStorm(currentPos, STORM_ZONES);
+          return (
+            <span key={`dot-${flight.id}`}>
+              {inStorm && (
+                <CircleMarker
+                  center={currentPos}
+                  radius={12}
+                  className="storm-pulse-ring"
+                  pathOptions={{
+                    color: '#FFB800',
+                    fillColor: 'transparent',
+                    weight: 2,
+                    opacity: 0.85,
+                  }}
+                />
+              )}
+              <CircleMarker
+                center={currentPos}
+                radius={5}
+                className="aero-pulse"
+                pathOptions={{
+                  color: inStorm ? '#FFB800' : ACCENT,
+                  fillColor: inStorm ? '#FFB800' : ACCENT,
+                  fillOpacity: 1,
+                  weight: 0,
+                }}
+                eventHandlers={{
+                  click: () => setSelectedFlight(flight),
                 }}
               >
-                <strong>{flight.id}</strong>
-                <br />
-                {flight.origin} → {flight.destination}
-                <br />
-                Status: {flight.status}
-              </span>
-            </Popup>
-          </CircleMarker>
-        ))}
+                <Popup>
+                  <span
+                    style={{
+                      fontFamily: '"JetBrains Mono", monospace',
+                      fontSize: 11,
+                      color: '#F5F5F5',
+                    }}
+                  >
+                    <strong>{flight.id}</strong>
+                    {inStorm && <span style={{ color: '#FFB800', marginLeft: 8 }}>⚠️ STORM WARNING</span>}
+                    <br />
+                    {flight.origin} → {flight.destination}
+                    <br />
+                    Status: {flight.status}
+                    <br />
+                    Position: {currentPos[0].toFixed(2)}N, {currentPos[1].toFixed(2)}E
+                  </span>
+                </Popup>
+              </CircleMarker>
+            </span>
+          );
+        })}
       </MapContainer>
     </>
   );
