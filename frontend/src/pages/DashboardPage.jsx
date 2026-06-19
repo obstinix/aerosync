@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
 import useFlightData from '../hooks/useFlightData.js';
-import GlobeView from '../components/Globe/GlobeView';
+import useStore from '../store/useStore';
+import Globe3D from '../components/Globe3D';
+import { AIRPORTS } from '../store/mockData';
 import FlightPopup from '../components/Globe/FlightPopup';
 import { StatsPanel } from '../components/shared/StatsPanel.jsx';
 import { FlightList } from '../components/shared/FlightList.jsx';
@@ -18,6 +20,8 @@ const AIRCRAFT_CAPACITY = {
 
 export default function DashboardPage() {
   const { flights, loading, error } = useFlightData();
+  const setSelectedFlight = useStore((s) => s.setSelectedFlight);
+  const setSelectedHub = useStore((s) => s.setSelectedHub);
 
   const stats = useMemo(() => {
     if (!flights || flights.length === 0) {
@@ -94,7 +98,7 @@ export default function DashboardPage() {
                 </div>
               }
             >
-              <GlobeView />
+              <Globe3D flights={flights} airports={Object.values(AIRPORTS)} onAirportSelect={(ap) => setSelectedHub(ap.iata)} onFlightSelect={(f) => setSelectedFlight(f)} />
               <FlightPopup />
             </ErrorBoundary>
           </div>
