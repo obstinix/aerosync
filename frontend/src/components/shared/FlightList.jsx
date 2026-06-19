@@ -3,8 +3,42 @@ import { motion } from 'motion/react';
 const STATUS_COLORS = {
   LIVE: '#00D4FF',
   LANDED: '#555555',
-  DELAYED: '#FF4444',
+  DELAYED: '#FFB020',
+  CRITICAL: '#FF4444',
+  'ON-TIME': '#00FF66',
+  BOARDING: '#00D4FF',
+  'IN-FLIGHT': '#00D4FF',
+  CANCELLED: '#555555',
 };
+
+function AirlineLogo({ flightNumber }) {
+  const code = flightNumber?.slice(0, 2);
+  let bg = '#555555';
+  let name = code;
+  if (code === 'AI' || flightNumber?.startsWith('AIC')) { bg = '#FF6F00'; name = 'AI'; }
+  else if (code === '6E' || flightNumber?.startsWith('IGO')) { bg = '#002F6C'; name = '6E'; }
+  else if (code === 'SG' || flightNumber?.startsWith('SEJ')) { bg = '#ED1C24'; name = 'SG'; }
+  else if (code === 'IX' || flightNumber?.startsWith('AXB')) { bg = '#E01933'; name = 'IX'; }
+  
+  return (
+    <span style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '24px',
+      height: '16px',
+      borderRadius: '2px',
+      fontSize: '9px',
+      fontWeight: 'bold',
+      color: '#fff',
+      backgroundColor: bg,
+      marginRight: '8px',
+      fontFamily: '"Space Grotesk", sans-serif'
+    }}>
+      {name}
+    </span>
+  );
+}
 
 const containerVariants = {
   hidden: {},
@@ -89,7 +123,10 @@ function FlightRow({ flight }) {
         borderLeftColor: '#00D4FF',
       }}
     >
-      <div style={cellStyle}>{flight.flightNumber}</div>
+      <div style={cellStyle}>
+        <AirlineLogo flightNumber={flight.flightNumber} />
+        {flight.flightNumber}
+      </div>
       <div style={cellStyle}>
         <span style={{ color: '#888888' }}>{flight.origin}</span>
         <span
