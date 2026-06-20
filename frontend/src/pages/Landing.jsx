@@ -44,7 +44,7 @@ export default function Landing() {
       flexDirection: 'column',
       justifyContent: 'space-between',
     }}>
-      {/* Background Globe Container */}
+      {/* Background Globe Container (Single verified Globe3D instance to prevent duplicate/failing mounts) */}
       <div className="landing-globe-container" style={{
         position: 'absolute',
         top: 0,
