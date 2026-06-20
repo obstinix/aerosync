@@ -1,7 +1,7 @@
 import { motion } from 'motion/react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useSocket } from '../../providers/SocketProvider.jsx';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import useStore from '../../store/useStore';
 import { soundManager } from '../../utils/soundManager';
 
