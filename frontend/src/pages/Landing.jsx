@@ -44,14 +44,14 @@ export default function Landing() {
       flexDirection: 'column',
       justifyContent: 'space-between',
     }}>
-      {/* Background Globe Container (Low Opacity) */}
+      {/* Background Globe Container */}
       <div className="landing-globe-container" style={{
         position: 'absolute',
         top: 0,
         left: 0,
         width: '100%',
         height: '100%',
-        opacity: 0.35,
+        opacity: 0.8,
         pointerEvents: 'none',
         zIndex: 1,
       }}>
@@ -122,15 +122,25 @@ export default function Landing() {
           Real-time aviation intelligence <br />
           <span style={{ color: '#00D4FF' }}>for Indian airspace</span>
         </h1>
-        <p style={{
-          fontSize: '16px',
+        <div style={{
+          fontSize: '15px',
           color: '#888',
           marginBottom: '32px',
-          maxWidth: '560px',
+          maxWidth: '620px',
           fontFamily: '"Space Grotesk", sans-serif',
+          lineHeight: '1.6',
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          gap: '8px',
         }}>
-          AI-powered operations, disruption mitigation, and live metrics for <span style={{ color: '#FF6F00' }}>Air India</span>, <span style={{ color: '#002F6C' }}>IndiGo</span>, and <span style={{ color: '#ED1C24' }}>SpiceJet</span>.
-        </p>
+          AI-powered operations, disruption mitigation, and live metrics for:
+          <span style={{ display: 'inline-flex', gap: '6px' }}>
+            <span style={{ border: '1px solid #FF4444', borderRadius: '4px', padding: '2px 8px', fontSize: '11px', fontFamily: '"JetBrains Mono", monospace', color: '#FF4444', background: 'rgba(255,68,68,0.08)' }}>Air India</span>
+            <span style={{ border: '1px solid #00D4FF', borderRadius: '4px', padding: '2px 8px', fontSize: '11px', fontFamily: '"JetBrains Mono", monospace', color: '#00D4FF', background: 'rgba(0,212,255,0.08)' }}>IndiGo</span>
+            <span style={{ border: '1px solid #FFB020', borderRadius: '4px', padding: '2px 8px', fontSize: '11px', fontFamily: '"JetBrains Mono", monospace', color: '#FFB020', background: 'rgba(255,176,32,0.08)' }}>SpiceJet</span>
+          </span>
+        </div>
 
         {/* Action Buttons */}
         <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
@@ -194,66 +204,70 @@ export default function Landing() {
       <footer style={{
         position: 'relative',
         zIndex: 10,
-        padding: '40px',
-        borderTop: '1px solid rgba(255,255,255,0.06)',
-        background: 'rgba(0,0,0,0.5)',
-        backdropFilter: 'blur(4px)',
+        padding: '0 40px 40px 40px',
       }}>
         <div style={{
-          fontSize: '11px',
-          fontFamily: '"JetBrains Mono", monospace',
-          color: '#555555',
-          letterSpacing: '0.12em',
-          textTransform: 'uppercase',
-          marginBottom: '20px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
+          background: '#080808',
+          border: '1px solid rgba(0, 212, 255, 0.2)',
+          borderRadius: '6px',
+          padding: '24px 32px',
         }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#00D4FF', display: 'inline-block' }}></span>
-          Live Right Now
-        </div>
-
-        {/* 4 Stat Counters */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: '24px',
-        }} className="landing-stats-grid">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <span style={{ fontSize: '32px', fontWeight: 700, color: '#00D4FF', fontFamily: '"JetBrains Mono", monospace' }}>
-              <AnimatedCounter end={INDIAN_FLIGHTS.length} />
-            </span>
-            <span style={{ fontSize: '11px', color: '#666666', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Active Flights
-            </span>
+          <div style={{
+            fontSize: '11px',
+            fontFamily: '"JetBrains Mono", monospace',
+            color: '#888888',
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            marginBottom: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#00D4FF', display: 'inline-block', boxShadow: '0 0 8px #00D4FF' }}></span>
+            Telemetry Feed: Live Right Now
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <span style={{ fontSize: '32px', fontWeight: 700, color: '#F5F5F5', fontFamily: '"JetBrains Mono", monospace' }}>
-              <AnimatedCounter end={Object.keys(AIRPORTS).length} />
-            </span>
-            <span style={{ fontSize: '11px', color: '#666666', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Airports
-            </span>
-          </div>
+          {/* 4 Stat Counters */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: '24px',
+          }} className="landing-stats-grid">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <span style={{ fontSize: '32px', fontWeight: 700, color: '#00D4FF', fontFamily: '"JetBrains Mono", monospace' }}>
+                <AnimatedCounter end={INDIAN_FLIGHTS.length} />
+              </span>
+              <span style={{ fontSize: '11px', color: '#666666', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Active Flights
+              </span>
+            </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <span style={{ fontSize: '32px', fontWeight: 700, color: '#FF4444', fontFamily: '"JetBrains Mono", monospace' }}>
-              <AnimatedCounter end={3} />
-            </span>
-            <span style={{ fontSize: '11px', color: '#666666', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Alerts
-            </span>
-          </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <span style={{ fontSize: '32px', fontWeight: 700, color: '#F5F5F5', fontFamily: '"JetBrains Mono", monospace' }}>
+                <AnimatedCounter end={Object.keys(AIRPORTS).length} />
+              </span>
+              <span style={{ fontSize: '11px', color: '#666666', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Airports
+              </span>
+            </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <span style={{ fontSize: '32px', fontWeight: 700, color: '#FFB020', fontFamily: '"JetBrains Mono", monospace' }}>
-              <AnimatedCounter end={17} suffix=" min" />
-            </span>
-            <span style={{ fontSize: '11px', color: '#666666', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Avg Delay
-            </span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <span style={{ fontSize: '32px', fontWeight: 700, color: '#FF4444', fontFamily: '"JetBrains Mono", monospace' }}>
+                <AnimatedCounter end={3} />
+              </span>
+              <span style={{ fontSize: '11px', color: '#666666', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Alerts
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <span style={{ fontSize: '32px', fontWeight: 700, color: '#FFB020', fontFamily: '"JetBrains Mono", monospace' }}>
+                <AnimatedCounter end={17} suffix=" min" />
+              </span>
+              <span style={{ fontSize: '11px', color: '#666666', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Avg Delay
+              </span>
+            </div>
           </div>
         </div>
       </footer>
