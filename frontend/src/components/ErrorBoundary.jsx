@@ -72,7 +72,7 @@ export class ErrorBoundary extends React.Component {
           >
             {this.state.isWebGL 
               ? 'WebGL rendering engine context was lost or failed to initialize.' 
-              : (this.state.error?.message || 'Operational module breakdown.')}
+              : 'Operational module breakdown.'}
           </p>
           <button
             onClick={this.handleRetry}

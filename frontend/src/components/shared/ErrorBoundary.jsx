@@ -33,7 +33,7 @@ export class ErrorBoundary extends React.Component {
             SYSTEM DEGRADED (CRITICAL EXCEPTION)
           </h2>
           <p style={{ color: 'var(--c-muted)', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-4)', fontFamily: 'var(--font-data)' }}>
-            {this.state.error?.message || 'Unknown render breakdown.'}
+            Unknown render breakdown.
           </p>
           <button
             onClick={() => window.location.reload()}

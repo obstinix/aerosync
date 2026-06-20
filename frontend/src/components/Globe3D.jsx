@@ -91,7 +91,7 @@ export default function Globe3D({ flights = [], airports = [], onAirportSelect, 
   const containerRef = useRef(null);
   const globeInstanceRef = useRef(null);
   const [webglAvailable, setWebglAvailable] = useState(true);
-  const [initError, setInitError] = useState(null);
+  const [globeError, setGlobeError] = useState(null);
   const [showHeatmap, setShowHeatmap] = useState(false);
 
   // WebGL detection
@@ -115,7 +115,7 @@ export default function Globe3D({ flights = [], airports = [], onAirportSelect, 
       containerRef.current.innerHTML = '';
     }
     globeInstanceRef.current = null;
-    setInitError(null);
+    setGlobeError(null);
 
     try {
       // Initialize Globe
@@ -215,7 +215,7 @@ export default function Globe3D({ flights = [], airports = [], onAirportSelect, 
 
     } catch (err) {
       console.error('[Globe3D] Init failed:', err);
-      setInitError(err.message || 'Unknown globe initialization error');
+      setGlobeError('3D Globe unavailable');
     }
   }, [webglAvailable]);
 
@@ -461,66 +461,52 @@ export default function Globe3D({ flights = [], airports = [], onAirportSelect, 
         `);
     } catch (err) {
       console.error('[Globe3D] Data update failed:', err);
-      setInitError(err.message || 'Globe data update error');
+      setGlobeError('3D Globe unavailable');
     }
   }, [flights, airports, onAirportSelect, onFlightSelect, heatmapPoints]);
 
   // Globe init error fallback (separate from top-level ErrorBoundary)
-  if (initError) {
+  if (globeError) {
     return (
       <div style={{
+        position: 'absolute',
+        inset: 0,
         display: 'flex',
-        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        height: '100%',
-        width: '100%',
-        background: '#0A0A0A',
-        border: '1px solid rgba(255, 68, 68, 0.4)',
-        borderRadius: '6px',
-        padding: '24px',
-        textAlign: 'center',
+        background: '#000000',
+        overflow: 'hidden'
       }}>
-        <div style={{
-          fontFamily: '"JetBrains Mono", monospace',
-          fontSize: '10px',
-          color: '#FF4444',
-          textTransform: 'uppercase',
-          letterSpacing: '0.12em',
-          marginBottom: '8px',
-        }}>
-          ⚠ SYSTEM DEGRADED
-        </div>
-        <div style={{
-          fontFamily: '"Space Grotesk", sans-serif',
-          fontSize: '13px',
-          color: '#888',
-          marginBottom: '16px',
-          maxWidth: '320px',
-          lineHeight: 1.5,
-        }}>
-          Globe renderer encountered an error: {initError}
-        </div>
-        <button
-          onClick={() => { setInitError(null); initGlobe(); }}
-          style={{
-            padding: '6px 16px',
-            background: 'transparent',
-            border: '1px solid #00D4FF',
-            borderRadius: '4px',
-            color: '#00D4FF',
-            cursor: 'pointer',
+        <div style={{ textAlign: 'center' }}>
+          <p style={{
+            color: '#888888',
             fontFamily: '"JetBrains Mono", monospace',
-            fontSize: '11px',
-            letterSpacing: '0.06em',
-            textTransform: 'uppercase',
-            transition: 'background 0.2s',
-          }}
-          onMouseEnter={e => e.target.style.background = 'rgba(0,212,255,0.1)'}
-          onMouseLeave={e => e.target.style.background = 'transparent'}
-        >
-          ↻ Retry
-        </button>
+            fontSize: '13px',
+            marginBottom: '16px'
+          }}>
+            {globeError}
+          </p>
+          <button
+            onClick={() => { setGlobeError(null); initGlobe(); }}
+            style={{
+              padding: '6px 16px',
+              background: 'transparent',
+              border: '1px solid #00D4FF',
+              borderRadius: '4px',
+              color: '#00D4FF',
+              cursor: 'pointer',
+              fontFamily: '"JetBrains Mono", monospace',
+              fontSize: '11px',
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              transition: 'background 0.2s',
+            }}
+            onMouseEnter={e => e.target.style.background = 'rgba(0,212,255,0.1)'}
+            onMouseLeave={e => e.target.style.background = 'transparent'}
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
