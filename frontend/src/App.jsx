@@ -11,7 +11,6 @@ import SolariTicker from './components/SolariTicker.jsx';
 import CommandPalette from './components/CommandPalette.jsx';
 import { KeyboardShortcuts, useKeyboardShortcuts } from './components/KeyboardShortcuts.jsx';
 import ToastManager from './components/ToastManager.jsx';
-import MorningBriefing from './components/MorningBriefing.jsx';
 import './styles/tokens.css';
 import './App.css';
 
@@ -280,7 +279,6 @@ export default function App() {
 
         {/* Global overlays */}
         <ToastManager />
-        <MorningBriefing />
         <CommandPalette />
         <KeyboardShortcuts isOpen={shortcutsOpen} onClose={closeShortcuts} />
       </div>

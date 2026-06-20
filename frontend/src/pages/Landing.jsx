@@ -269,6 +269,54 @@ export default function Landing() {
               </span>
             </div>
           </div>
+
+          {/* AI Network Briefing row */}
+          <div style={{
+            marginTop: '20px',
+            paddingTop: '16px',
+            borderTop: '1px solid rgba(0, 212, 255, 0.15)',
+            fontFamily: '"JetBrains Mono", monospace',
+            fontSize: '11px',
+            color: '#666666',
+            letterSpacing: '0.05em',
+            textTransform: 'uppercase',
+            display: 'flex',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '4px',
+          }}>
+            <span style={{ color: '#888888' }}>NETWORK BRIEFING — </span>
+            <span style={{ color: '#00D4FF' }}>6 ON-TIME</span>
+            <span style={{ color: '#666666', margin: '0 4px' }}>·</span>
+            <span style={{ color: '#FFB020' }}>3 DELAYED</span>
+            <span style={{ color: '#666666', margin: '0 4px' }}>·</span>
+            <span style={{ color: '#FF4444' }}>1 CRITICAL</span>
+            <span style={{ color: '#666666', margin: '0 4px' }}>·</span>
+            <span style={{ color: '#F5F5F5' }}>1,710 PAX TRACKED</span>
+            <span style={{ color: '#666666', margin: '0 4px' }}>·</span>
+            <span style={{ color: '#FF4444' }}>4 ALERTS PENDING</span>
+            <button
+              onClick={() => navigate('/warroom')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#00D4FF',
+                cursor: 'pointer',
+                fontFamily: '"JetBrains Mono", monospace',
+                fontSize: '13px',
+                fontWeight: 'bold',
+                padding: '0 4px',
+                marginLeft: '4px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                transition: 'color 0.2s',
+              }}
+              onMouseEnter={(e) => e.target.style.color = '#FFFFFF'}
+              onMouseLeave={(e) => e.target.style.color = '#00D4FF'}
+            >
+              &rarr;
+            </button>
+          </div>
         </div>
       </footer>
 
