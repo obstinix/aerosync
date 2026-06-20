@@ -1,7 +1,8 @@
 import { motion } from 'motion/react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useSocket } from '../../providers/SocketProvider.jsx';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import useStore from '../../store/useStore';
 
 const links = [
   { to: '/operations', label: 'OPERATIONS' },
@@ -9,6 +10,58 @@ const links = [
   { to: '/cargo', label: 'CARGO' },
   { to: '/simulator', label: 'DISRUPTIONS' },
 ];
+
+function NetworkHealthBadge() {
+  const flights = useStore(s => s.flights);
+  const navigate = useNavigate();
+
+  const score = useMemo(() => {
+    if (!flights || flights.length === 0) return 100;
+    const total = flights.length;
+    const delayed = flights.filter(f => f.status === 'delayed').length;
+    const critical = flights.filter(f => f.status === 'critical').length;
+    // Score: 100 base, -3 per delayed, -8 per critical
+    return Math.max(0, Math.min(100, Math.round(100 - (delayed * 3 + critical * 8) * (100 / total))));
+  }, [flights]);
+
+  const color = score >= 80 ? '#00D4FF' : score >= 50 ? '#FFB020' : '#FF4444';
+
+  return (
+    <button
+      onClick={() => navigate('/analytics')}
+      title="Network Health — click for details"
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 5,
+        padding: '3px 8px',
+        background: 'rgba(0,0,0,0.4)',
+        border: `1px solid ${color}33`,
+        borderRadius: '4px',
+        cursor: 'pointer',
+        transition: 'border-color 0.3s',
+      }}
+    >
+      <div style={{
+        width: 7,
+        height: 7,
+        borderRadius: '50%',
+        background: color,
+        boxShadow: `0 0 6px ${color}66`,
+        animation: 'pulse 2s ease-in-out infinite',
+      }} />
+      <span style={{
+        fontFamily: '"JetBrains Mono", monospace',
+        fontSize: 10,
+        color: color,
+        fontWeight: 600,
+        letterSpacing: '0.04em',
+      }}>
+        {score}
+      </span>
+    </button>
+  );
+}
 
 export function Navbar() {
   const { connected } = useSocket();
@@ -80,8 +133,9 @@ export function Navbar() {
         ))}
       </nav>
 
-      {/* Right: Clock + Connection */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+      {/* Right: Health Badge + Clock + Connection */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <NetworkHealthBadge />
         <span style={{
           fontFamily: '"JetBrains Mono", monospace',
           fontSize: 11,
