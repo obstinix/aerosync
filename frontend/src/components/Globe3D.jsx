@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import Globe from 'globe.gl';
 import * as THREE from 'three';
 import { soundManager } from '../utils/soundManager';
