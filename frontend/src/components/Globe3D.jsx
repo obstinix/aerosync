@@ -40,41 +40,51 @@ function createTerminatorTexture() {
 }
 
 function getAircraftPosition(startLat, startLng, endLat, endLng, t) {
-  const startLatRad = (startLat * Math.PI) / 180;
-  const startLngRad = (startLng * Math.PI) / 180;
-  const endLatRad = (endLat * Math.PI) / 180;
-  const endLngRad = (endLng * Math.PI) / 180;
-  
-  const pStart = new THREE.Vector3(
-    Math.cos(startLatRad) * Math.sin(startLngRad),
-    Math.sin(startLatRad),
-    Math.cos(startLatRad) * Math.cos(startLngRad)
-  );
-  
-  const pEnd = new THREE.Vector3(
-    Math.cos(endLatRad) * Math.sin(endLngRad),
-    Math.sin(endLatRad),
-    Math.cos(endLatRad) * Math.cos(endLngRad)
-  );
-  
-  const pCurr = new THREE.Vector3().copy(pStart).lerp(pEnd, t).normalize();
-  
-  const lat = Math.asin(pCurr.y) * (180 / Math.PI);
-  const lng = Math.atan2(pCurr.x, pCurr.z) * (180 / Math.PI);
-  const alt = 0.08 * 4 * t * (1 - t); // altitude in units of radius
-  
-  return { lat, lng, alt };
+  try {
+    const startLatRad = (startLat * Math.PI) / 180;
+    const startLngRad = (startLng * Math.PI) / 180;
+    const endLatRad = (endLat * Math.PI) / 180;
+    const endLngRad = (endLng * Math.PI) / 180;
+    
+    const pStart = new THREE.Vector3(
+      Math.cos(startLatRad) * Math.sin(startLngRad),
+      Math.sin(startLatRad),
+      Math.cos(startLatRad) * Math.cos(startLngRad)
+    );
+    
+    const pEnd = new THREE.Vector3(
+      Math.cos(endLatRad) * Math.sin(endLngRad),
+      Math.sin(endLatRad),
+      Math.cos(endLatRad) * Math.cos(endLngRad)
+    );
+    
+    const pCurr = new THREE.Vector3().copy(pStart).lerp(pEnd, t).normalize();
+    
+    const lat = Math.asin(pCurr.y) * (180 / Math.PI);
+    const lng = Math.atan2(pCurr.x, pCurr.z) * (180 / Math.PI);
+    const alt = 0.08 * 4 * t * (1 - t); // altitude in units of radius
+    
+    return { lat, lng, alt };
+  } catch (err) {
+    console.error('[Globe3D] Error in getAircraftPosition:', err, { startLat, startLng, endLat, endLng, t });
+    return { lat: 0, lng: 0, alt: 0 };
+  }
 }
 
 function getBearing(lat1, lng1, lat2, lng2) {
-  const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  const lat1Rad = (lat1 * Math.PI) / 180;
-  const lat2Rad = (lat2 * Math.PI) / 180;
-  
-  const y = Math.sin(dLng) * Math.cos(lat2Rad);
-  const x = Math.cos(lat1Rad) * Math.sin(lat2Rad) - Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(dLng);
-  const bearing = Math.atan2(y, x);
-  return bearing;
+  try {
+    const dLng = ((lng2 - lng1) * Math.PI) / 180;
+    const lat1Rad = (lat1 * Math.PI) / 180;
+    const lat2Rad = (lat2 * Math.PI) / 180;
+    
+    const y = Math.sin(dLng) * Math.cos(lat2Rad);
+    const x = Math.cos(lat1Rad) * Math.sin(lat2Rad) - Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(dLng);
+    const bearing = Math.atan2(y, x);
+    return bearing;
+  } catch (err) {
+    console.error('[Globe3D] Error in getBearing:', err, { lat1, lng1, lat2, lng2 });
+    return 0;
+  }
 }
 
 export default function Globe3D({ flights = [], airports = [], onAirportSelect, onFlightSelect }) {
@@ -241,34 +251,39 @@ export default function Globe3D({ flights = [], airports = [], onAirportSelect, 
 
   // India delay heatmap points (lat 6-37, lon 68-97)
   const heatmapPoints = useMemo(() => {
-    if (!showHeatmap) return [];
-    const points = [];
-    
-    flights.forEach(flight => {
-      const startAp = airports.find(a => a.code === flight.origin || a.iata === flight.origin);
-      const endAp = airports.find(a => a.code === flight.destination || a.iata === flight.destination);
-      if (!startAp || !endAp) return;
+    try {
+      if (!showHeatmap) return [];
+      const points = [];
       
-      const t = flight.progressPct || 0;
-      const startLat = startAp.lat;
-      const startLng = startAp.lon || startAp.lng;
-      const endLat = endAp.lat;
-      const endLng = endAp.lon || endAp.lng;
-      
-      const pos = getAircraftPosition(startLat, startLng, endLat, endLng, t);
-      
-      if (pos.lat >= 6 && pos.lat <= 37 && pos.lng >= 68 && pos.lng <= 97) {
-        if (flight.delayMinutes > 0) {
-          points.push({
-            lat: pos.lat,
-            lng: pos.lng,
-            delay: flight.delayMinutes
-          });
+      flights.forEach(flight => {
+        const startAp = airports.find(a => a.code === flight.origin || a.iata === flight.origin);
+        const endAp = airports.find(a => a.code === flight.destination || a.iata === flight.destination);
+        if (!startAp || !endAp) return;
+        
+        const t = flight.progressPct || 0;
+        const startLat = startAp.lat;
+        const startLng = startAp.lon || startAp.lng;
+        const endLat = endAp.lat;
+        const endLng = endAp.lon || endAp.lng;
+        
+        const pos = getAircraftPosition(startLat, startLng, endLat, endLng, t);
+        
+        if (pos.lat >= 6 && pos.lat <= 37 && pos.lng >= 68 && pos.lng <= 97) {
+          if (flight.delayMinutes > 0) {
+            points.push({
+              lat: pos.lat,
+              lng: pos.lng,
+              delay: flight.delayMinutes
+            });
+          }
         }
-      }
-    });
-    
-    return points;
+      });
+      
+      return points;
+    } catch (err) {
+      console.error('[Globe3D] Error in heatmapPoints useMemo:', err);
+      return [];
+    }
   }, [flights, airports, showHeatmap]);
 
   // Update data
