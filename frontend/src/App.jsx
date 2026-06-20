@@ -48,6 +48,23 @@ export default function App() {
   // Global keyboard shortcuts
   const { isOpen: shortcutsOpen, close: closeShortcuts } = useKeyboardShortcuts();
 
+  useEffect(() => {
+    let typed = '';
+    const handleKeyDown = (e) => {
+      const tag = e.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) {
+        return;
+      }
+      typed += e.key.toUpperCase();
+      if (typed.endsWith('TOWER')) {
+        window.dispatchEvent(new CustomEvent('trigger-tower-view'));
+        typed = '';
+      }
+      if (typed.length > 20) typed = typed.substring(typed.length - 10);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   useEffect(() => {
     if (location.pathname === '/' && sessionStorage.getItem('onboarded') === '1') {

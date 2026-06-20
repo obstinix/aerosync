@@ -68,10 +68,28 @@ export function Navbar() {
   const { connected } = useSocket();
   const [time, setTime] = useState(new Date());
   const [muted, setMuted] = useState(soundManager.isMuted());
+  
+  const logoClicksRef = useRef(0);
+  const logoClicksTimeoutRef = useRef(null);
+
+  const handleLogoClick = () => {
+    logoClicksRef.current += 1;
+    if (logoClicksRef.current >= 3) {
+      logoClicksRef.current = 0;
+      window.dispatchEvent(new CustomEvent('trigger-tower-view'));
+    }
+    clearTimeout(logoClicksTimeoutRef.current);
+    logoClicksTimeoutRef.current = setTimeout(() => {
+      logoClicksRef.current = 0;
+    }, 1000);
+  };
 
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(t);
+    return () => {
+      clearInterval(t);
+      clearTimeout(logoClicksTimeoutRef.current);
+    };
   }, []);
 
   return (
@@ -92,13 +110,18 @@ export function Navbar() {
       zIndex: 100,
     }}>
       {/* Left: Wordmark */}
-      <span style={{
-        fontFamily: '"Space Grotesk", sans-serif',
-        fontWeight: 600,
-        fontSize: 16,
-        color: '#F5F5F5',
-        letterSpacing: '0.15em',
-      }}>
+      <span
+        onClick={handleLogoClick}
+        style={{
+          fontFamily: '"Space Grotesk", sans-serif',
+          fontWeight: 600,
+          fontSize: 16,
+          color: '#F5F5F5',
+          letterSpacing: '0.15em',
+          cursor: 'pointer',
+          userSelect: 'none',
+        }}
+      >
         AEROSYNC
       </span>
 

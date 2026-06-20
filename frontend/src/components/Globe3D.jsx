@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import Globe from 'globe.gl';
 import * as THREE from 'three';
+import { soundManager } from '../utils/soundManager';
 
 function getSubsolarPoint() {
   const now = new Date();
@@ -218,6 +219,25 @@ export default function Globe3D({ flights = [], airports = [], onAirportSelect, 
       }
     };
   }, [initGlobe]);
+
+  // Control Tower view easter egg
+  useEffect(() => {
+    const handleTowerView = () => {
+      const globe = globeInstanceRef.current;
+      if (!globe) return;
+      
+      soundManager.playWhoosh();
+      globe.pointOfView({ lat: 28.556, lng: 77.100, altitude: 0.005 }, 3000);
+      
+      const controls = globe.controls();
+      if (controls) {
+        controls.autoRotate = false;
+      }
+    };
+    
+    window.addEventListener('trigger-tower-view', handleTowerView);
+    return () => window.removeEventListener('trigger-tower-view', handleTowerView);
+  }, []);
 
   // India delay heatmap points (lat 6-37, lon 68-97)
   const heatmapPoints = useMemo(() => {
