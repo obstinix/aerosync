@@ -39,6 +39,109 @@ const pageVariants = {
   exit:    { opacity: 0, y: -4, transition: { duration: 0.14 } },
 };
 
+function RouteFallback({ page }) {
+  const navigate = useNavigate();
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: '100%',
+      width: '100%',
+      background: '#000000',
+      fontFamily: '"Space Grotesk", sans-serif',
+      padding: '40px',
+    }}>
+      <div style={{
+        background: '#080808',
+        border: '1px solid #FF4444',
+        borderRadius: '6px',
+        padding: '32px 40px',
+        maxWidth: '480px',
+        textAlign: 'center',
+        boxShadow: '0 4px 20px rgba(255, 68, 68, 0.1)',
+      }}>
+        <div style={{
+          fontFamily: '"JetBrains Mono", monospace',
+          fontSize: '11px',
+          color: '#FF4444',
+          textTransform: 'uppercase',
+          letterSpacing: '0.12em',
+          marginBottom: '12px',
+        }}>
+          ⚠ operational failure
+        </div>
+        <h2 style={{
+          fontSize: '18px',
+          fontWeight: 600,
+          color: '#F5F5F5',
+          marginBottom: '8px',
+          textTransform: 'uppercase',
+        }}>
+          {page} Page hit an error
+        </h2>
+        <p style={{
+          fontSize: '13px',
+          color: '#888888',
+          fontFamily: '"Space Grotesk", sans-serif',
+          marginBottom: '24px',
+          lineHeight: '1.5',
+        }}>
+          A critical exception was caught in the user interface thread. The exception details have been output to the developer console.
+        </p>
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+          <button
+            onClick={() => window.location.reload()}
+            style={{
+              padding: '8px 16px',
+              background: 'transparent',
+              border: '1px solid #00D4FF',
+              borderRadius: '4px',
+              color: '#00D4FF',
+              cursor: 'pointer',
+              fontFamily: '"JetBrains Mono", monospace',
+              fontSize: '11px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              transition: 'background 0.2s',
+            }}
+            onMouseEnter={e => e.target.style.background = 'rgba(0,212,255,0.08)'}
+            onMouseLeave={e => e.target.style.background = 'transparent'}
+          >
+            Retry
+          </button>
+          <button
+            onClick={() => navigate('/')}
+            style={{
+              padding: '8px 16px',
+              background: 'transparent',
+              border: '1px solid rgba(255,255,255,0.2)',
+              borderRadius: '4px',
+              color: '#F5F5F5',
+              cursor: 'pointer',
+              fontFamily: '"JetBrains Mono", monospace',
+              fontSize: '11px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={e => {
+              e.target.style.background = 'rgba(255,255,255,0.05)';
+              e.target.style.borderColor = 'rgba(255,255,255,0.4)';
+            }}
+            onMouseLeave={e => {
+              e.target.style.background = 'transparent';
+              e.target.style.borderColor = 'rgba(255,255,255,0.2)';
+            }}
+          >
+            Back to Home
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -120,39 +223,53 @@ export default function App() {
                 <AnimatePresence mode="wait">
                   <Routes location={location} key={location.pathname}>
                     <Route path="/" element={
-                      <motion.div {...pageVariants} style={{ height: '100%' }}>
-                        <Landing />
-                      </motion.div>
+                      <ErrorBoundary fallback={<RouteFallback page="Landing" />}>
+                        <motion.div {...pageVariants} style={{ height: '100%' }}>
+                          <Landing />
+                        </motion.div>
+                      </ErrorBoundary>
                     } />
                     <Route path="/operations" element={
-                      <motion.div {...pageVariants} style={{ height: '100%' }}>
-                        <Dashboard />
-                      </motion.div>
+                      <ErrorBoundary fallback={<RouteFallback page="Operations" />}>
+                        <motion.div {...pageVariants} style={{ height: '100%' }}>
+                          <Dashboard />
+                        </motion.div>
+                      </ErrorBoundary>
                     } />
                     <Route path="/scheduling" element={
-                      <motion.div {...pageVariants} style={{ height: '100%' }}>
-                        <Scheduling />
-                      </motion.div>
+                      <ErrorBoundary fallback={<RouteFallback page="Scheduling" />}>
+                        <motion.div {...pageVariants} style={{ height: '100%' }}>
+                          <Scheduling />
+                        </motion.div>
+                      </ErrorBoundary>
                     } />
                     <Route path="/cargo" element={
-                      <motion.div {...pageVariants} style={{ height: '100%' }}>
-                        <CargoPanel />
-                      </motion.div>
+                      <ErrorBoundary fallback={<RouteFallback page="Cargo" />}>
+                        <motion.div {...pageVariants} style={{ height: '100%' }}>
+                          <CargoPanel />
+                        </motion.div>
+                      </ErrorBoundary>
                     } />
                     <Route path="/simulator" element={
-                      <motion.div {...pageVariants} style={{ height: '100%' }}>
-                        <Simulator />
-                      </motion.div>
+                      <ErrorBoundary fallback={<RouteFallback page="Simulator" />}>
+                        <motion.div {...pageVariants} style={{ height: '100%' }}>
+                          <Simulator />
+                        </motion.div>
+                      </ErrorBoundary>
                     } />
                     <Route path="/analytics" element={
-                      <motion.div {...pageVariants} style={{ height: '100%' }}>
-                        <Analytics />
-                      </motion.div>
+                      <ErrorBoundary fallback={<RouteFallback page="Analytics" />}>
+                        <motion.div {...pageVariants} style={{ height: '100%' }}>
+                          <Analytics />
+                        </motion.div>
+                      </ErrorBoundary>
                     } />
                     <Route path="/warroom" element={
-                      <motion.div {...pageVariants} style={{ height: '100%' }}>
-                        <WarRoom />
-                      </motion.div>
+                      <ErrorBoundary fallback={<RouteFallback page="War Room" />}>
+                        <motion.div {...pageVariants} style={{ height: '100%' }}>
+                          <WarRoom />
+                        </motion.div>
+                      </ErrorBoundary>
                     } />
                   </Routes>
                 </AnimatePresence>
