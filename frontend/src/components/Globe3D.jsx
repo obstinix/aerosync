@@ -165,6 +165,24 @@ export default function Globe3D({ flights = [], airports = [], onAirportSelect, 
         controls.autoRotateSpeed = 0.3;
       }
 
+      // Adjust default light intensities
+      globe.scene().traverse(obj => {
+        if (obj.isLight) {
+          if (obj.isAmbientLight) {
+            obj.intensity = 0.6;
+          } else if (obj.isDirectionalLight) {
+            obj.intensity = 1.2;
+          }
+        }
+      });
+
+      // Optimize renderer DPR
+      const renderer = globe.renderer();
+      if (renderer) {
+        const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+        renderer.setPixelRatio(isMobile ? 1 : Math.min(window.devicePixelRatio, 2));
+      }
+
       // Pause on user interaction, resume after 3s idle
       let idleTimeout;
       const onInteraction = () => {
