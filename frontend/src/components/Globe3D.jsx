@@ -458,8 +458,9 @@ export default function Globe3D({ flights = [], airports = [], onAirportSelect, 
         .hexBinPointLat(d => d.lat)
         .hexBinPointLng(d => d.lng)
         .hexBinPointWeight(d => d.delay)
-        .hexBinRadius(1.2)
-        .hexColor(() => '#FFB020')
+        .hexBinResolution(4)
+        .hexTopColor(() => '#FFB020')
+        .hexSideColor(() => '#FFB020')
         .hexAltitude(d => Math.min(0.5, d.sumWeight * 0.003))
         .hexLabel(d => `
           <div style="
@@ -478,7 +479,7 @@ export default function Globe3D({ flights = [], airports = [], onAirportSelect, 
           </div>
         `);
     } catch (err) {
-      console.error('[Globe3D] Data update failed:', err);
+      console.error('[Globe3D] Data update failed:', err.message, err.stack);
       setGlobeError('3D Globe unavailable');
     }
   }, [flights, airports, onAirportSelect, onFlightSelect, heatmapPoints]);
