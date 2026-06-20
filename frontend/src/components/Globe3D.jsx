@@ -391,11 +391,8 @@ export default function Globe3D({ flights = [], airports = [], onAirportSelect, 
       }).filter(Boolean);
 
       globe
-        .objectsData(activeFlightsData)
-        .objectLat(d => d.lat)
-        .objectLng(d => d.lng)
-        .objectAltitude(d => d.alt)
-        .objectThreeObject(d => {
+        .customLayerData(activeFlightsData)
+        .customThreeObject(d => {
           const group = new THREE.Group();
           const color = d.flight.status === 'delayed' ? '#FFB020' : d.flight.status === 'critical' ? '#FF4444' : '#00D4FF';
           const mat = new THREE.MeshBasicMaterial({ color });
@@ -411,11 +408,12 @@ export default function Globe3D({ flights = [], airports = [], onAirportSelect, 
           
           return group;
         })
-        .objectThreeObjectUpdate((obj, d) => {
+        .customThreeObjectUpdate((obj, d) => {
+          Object.assign(obj.position, globe.getCoords(d.lat, d.lng, d.alt));
           const bearing = getBearing(d.bearingStartLat, d.bearingStartLng, d.bearingEndLat, d.bearingEndLng);
           obj.rotation.z = -bearing;
         })
-        .objectLabel(d => `
+        .customLayerLabel(d => `
           <div style="
             color:#F5F5F5;
             font-family:'JetBrains Mono', monospace;
@@ -433,7 +431,7 @@ export default function Globe3D({ flights = [], airports = [], onAirportSelect, 
         `);
 
       if (onFlightSelect) {
-        globe.onObjectClick(obj => onFlightSelect(obj.flight));
+        globe.onCustomLayerClick(d => onFlightSelect(d.flight));
       }
 
       // India delay heatmap points layer
