@@ -1,5 +1,42 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import Globe from 'globe.gl';
+import * as THREE from 'three';
+
+function getSubsolarPoint() {
+  const now = new Date();
+  const start = new Date(now.getUTCFullYear(), 0, 0);
+  const diff = now - start;
+  const oneDay = 1000 * 60 * 60 * 24;
+  const dayOfYear = Math.floor(diff / oneDay);
+  
+  const declination = 23.45 * Math.sin((2 * Math.PI * (dayOfYear - 80)) / 365);
+  
+  const totalHours = now.getUTCHours() + now.getUTCMinutes() / 60 + now.getUTCSeconds() / 3600;
+  const longitude = -15 * (totalHours - 12);
+  
+  return { lat: declination, lng: longitude };
+}
+
+function createTerminatorTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+  
+  const grad = ctx.createLinearGradient(0, 0, 512, 0);
+  grad.addColorStop(0, 'rgba(0,0,0,0.65)');
+  grad.addColorStop(0.22, 'rgba(0,0,0,0.65)');
+  grad.addColorStop(0.33, 'rgba(0,0,0,0)');
+  grad.addColorStop(0.67, 'rgba(0,0,0,0)');
+  grad.addColorStop(0.78, 'rgba(0,0,0,0.65)');
+  grad.addColorStop(1, 'rgba(0,0,0,0.65)');
+  
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 512, 256);
+  
+  const texture = new THREE.CanvasTexture(canvas);
+  return texture;
+}
 
 export default function Globe3D({ flights = [], airports = [], onAirportSelect, onFlightSelect }) {
   const containerRef = useRef(null);
@@ -34,6 +71,34 @@ export default function Globe3D({ flights = [], airports = [], onAirportSelect, 
       // Initialize Globe
       const globe = Globe()(containerRef.current);
       globeInstanceRef.current = globe;
+
+      // Add day/night terminator overlay
+      const terminatorGeometry = new THREE.SphereGeometry(100.15, 64, 64);
+      const terminatorTexture = createTerminatorTexture();
+      const terminatorMaterial = new THREE.MeshBasicMaterial({
+        map: terminatorTexture,
+        transparent: true,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      });
+      const terminatorMesh = new THREE.Mesh(terminatorGeometry, terminatorMaterial);
+
+      const updateTerminatorRotation = () => {
+        const { lat, lng } = getSubsolarPoint();
+        const latRad = (lat * Math.PI) / 180;
+        const lngRad = (lng * Math.PI) / 180;
+        const R = 100.15;
+        const sunPos = new THREE.Vector3(
+          R * Math.cos(latRad) * Math.sin(lngRad),
+          R * Math.sin(latRad),
+          R * Math.cos(latRad) * Math.cos(lngRad)
+        );
+        terminatorMesh.lookAt(sunPos);
+      };
+
+      updateTerminatorRotation();
+      globe.scene().add(terminatorMesh);
+      const terminatorInterval = setInterval(updateTerminatorRotation, 30000);
 
       // Configure globe — all method names audited against globe.gl API (case-sensitive)
       globe
@@ -81,11 +146,20 @@ export default function Globe3D({ flights = [], airports = [], onAirportSelect, 
       // Store cleanup references
       globe.__cleanup = () => {
         clearTimeout(idleTimeout);
+        clearInterval(terminatorInterval);
         resizeObserver.disconnect();
         if (containerRef.current) {
           containerRef.current.removeEventListener('mousedown', onInteraction);
           containerRef.current.removeEventListener('wheel', onInteraction);
           containerRef.current.removeEventListener('touchstart', onInteraction);
+        }
+        try {
+          globe.scene().remove(terminatorMesh);
+          terminatorGeometry.dispose();
+          terminatorTexture.dispose();
+          terminatorMaterial.dispose();
+        } catch (e) {
+          console.error('[Globe3D] Error disposing terminator:', e);
         }
       };
 
