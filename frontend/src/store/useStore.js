@@ -5,6 +5,7 @@ import {
   generateCargoManifests,
   generateAISuggestions,
 } from './mockData';
+import { soundManager } from '../utils/soundManager';
 
 const initialFlights = generateFlights(25);
 
@@ -12,17 +13,25 @@ const useStore = create((set, get) => ({
   // Flights
   flights: initialFlights,
   selectedFlight: null,
-  setSelectedFlight: (flight) => set({ selectedFlight: flight }),
+  setSelectedFlight: (flight) => {
+    if (flight) soundManager.playWhoosh();
+    set({ selectedFlight: flight });
+  },
   clearSelectedFlight: () => set({ selectedFlight: null }),
   selectedHub: 'ALL',
-  setSelectedHub: (hub) => set({ selectedHub: hub }),
+  setSelectedHub: (hub) => {
+    if (hub && hub !== 'ALL') soundManager.playWhoosh();
+    set({ selectedHub: hub });
+  },
 
   // Alerts
   alerts: generateAlerts(initialFlights).map(a => ({ ...a, acknowledged: false })),
-  addAlert: (alert) =>
+  addAlert: (alert) => {
+    soundManager.playAlert();
     set((state) => ({
       alerts: [{ ...alert, acknowledged: false }, ...state.alerts].slice(0, 20),
-    })),
+    }));
+  },
   acknowledgeAlert: (id) =>
     set((state) => ({
       alerts: state.alerts.map((a) => (a.id === id ? { ...a, acknowledged: true } : a)),
@@ -40,13 +49,15 @@ const useStore = create((set, get) => ({
 
   // Notifications (toast)
   notifications: [],
-  addNotification: (notification) =>
+  addNotification: (notification) => {
+    soundManager.playAlert();
     set((state) => ({
       notifications: [
         { id: Date.now(), timestamp: new Date().toISOString(), ...notification },
         ...state.notifications,
       ].slice(0, 10),
-    })),
+    }));
+  },
   removeNotification: (id) =>
     set((state) => ({
       notifications: state.notifications.filter((n) => n.id !== id),

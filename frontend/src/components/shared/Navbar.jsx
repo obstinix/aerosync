@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useSocket } from '../../providers/SocketProvider.jsx';
 import { useEffect, useState, useMemo } from 'react';
 import useStore from '../../store/useStore';
+import { soundManager } from '../../utils/soundManager';
 
 const links = [
   { to: '/operations', label: 'OPERATIONS' },
@@ -66,6 +67,7 @@ function NetworkHealthBadge() {
 export function Navbar() {
   const { connected } = useSocket();
   const [time, setTime] = useState(new Date());
+  const [muted, setMuted] = useState(soundManager.isMuted());
 
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 1000);
@@ -136,6 +138,33 @@ export function Navbar() {
       {/* Right: Health Badge + Clock + Connection */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <NetworkHealthBadge />
+
+        {/* Audio Mute Button */}
+        <button
+          onClick={() => {
+            const nextMuted = soundManager.toggleMute();
+            setMuted(nextMuted);
+          }}
+          title={muted ? "Unmute sound effects" : "Mute sound effects"}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: muted ? '#FF4444' : '#00D4FF',
+            cursor: 'pointer',
+            fontSize: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '4px 6px',
+            opacity: 0.85,
+            transition: 'color 0.15s ease-out, opacity 0.15s ease-out',
+          }}
+          onMouseEnter={e => e.currentTarget.style.opacity = 1}
+          onMouseLeave={e => e.currentTarget.style.opacity = 0.85}
+        >
+          {muted ? '🔇' : '🔊'}
+        </button>
+
         <span style={{
           fontFamily: '"JetBrains Mono", monospace',
           fontSize: 11,
