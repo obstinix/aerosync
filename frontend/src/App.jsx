@@ -1,12 +1,17 @@
 import { AnimatePresence, motion } from 'motion/react';
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useState } from 'react';
 import { Navbar } from './components/shared/Navbar.jsx';
 import { Sidebar } from './components/shared/Sidebar.jsx';
 import { ErrorBoundary } from './components/shared/ErrorBoundary.jsx';
 import { SocketProvider } from './providers/SocketProvider.jsx';
 import { SandboxProvider } from './contexts/SandboxContext.jsx';
 import { useEffect } from 'react';
+import SolariTicker from './components/SolariTicker.jsx';
+import CommandPalette from './components/CommandPalette.jsx';
+import { KeyboardShortcuts, useKeyboardShortcuts } from './components/KeyboardShortcuts.jsx';
+import ToastManager from './components/ToastManager.jsx';
+import MorningBriefing from './components/MorningBriefing.jsx';
 import './styles/tokens.css';
 import './App.css';
 
@@ -39,6 +44,10 @@ export default function App() {
   const navigate = useNavigate();
 
   const isLanding = location.pathname === '/';
+
+  // Global keyboard shortcuts
+  const { isOpen: shortcutsOpen, close: closeShortcuts } = useKeyboardShortcuts();
+
 
   useEffect(() => {
     if (location.pathname === '/' && sessionStorage.getItem('onboarded') === '1') {
@@ -76,11 +85,12 @@ export default function App() {
         overflow: 'hidden',
       }}>
         {!isLanding && <Navbar />}
+        {!isLanding && <SolariTicker />}
         <div className="app-body" style={{
           display: 'flex',
           flex: 1,
           overflow: 'hidden',
-          paddingTop: isLanding ? 0 : 48,
+          paddingTop: isLanding ? 0 : 96, /* 48px navbar + 48px solari ticker */
         }}>
           {!isLanding && <Sidebar />}
           <main className="app-main" style={{
@@ -133,8 +143,15 @@ export default function App() {
             </ErrorBoundary>
           </main>
         </div>
+
+        {/* Global overlays */}
+        <ToastManager />
+        <MorningBriefing />
+        <CommandPalette />
+        <KeyboardShortcuts isOpen={shortcutsOpen} onClose={closeShortcuts} />
       </div>
     </SandboxProvider>
     </SocketProvider>
   );
 }
+
