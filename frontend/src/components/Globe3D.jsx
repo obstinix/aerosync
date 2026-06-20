@@ -81,6 +81,7 @@ export default function Globe3D({ flights = [], airports = [], onAirportSelect, 
   const globeInstanceRef = useRef(null);
   const [webglAvailable, setWebglAvailable] = useState(true);
   const [initError, setInitError] = useState(null);
+  const [showHeatmap, setShowHeatmap] = useState(false);
 
   // WebGL detection
   useEffect(() => {
@@ -217,6 +218,38 @@ export default function Globe3D({ flights = [], airports = [], onAirportSelect, 
       }
     };
   }, [initGlobe]);
+
+  // India delay heatmap points (lat 6-37, lon 68-97)
+  const heatmapPoints = useMemo(() => {
+    if (!showHeatmap) return [];
+    const points = [];
+    
+    flights.forEach(flight => {
+      const startAp = airports.find(a => a.code === flight.origin || a.iata === flight.origin);
+      const endAp = airports.find(a => a.code === flight.destination || a.iata === flight.destination);
+      if (!startAp || !endAp) return;
+      
+      const t = flight.progressPct || 0;
+      const startLat = startAp.lat;
+      const startLng = startAp.lon || startAp.lng;
+      const endLat = endAp.lat;
+      const endLng = endAp.lon || endAp.lng;
+      
+      const pos = getAircraftPosition(startLat, startLng, endLat, endLng, t);
+      
+      if (pos.lat >= 6 && pos.lat <= 37 && pos.lng >= 68 && pos.lng <= 97) {
+        if (flight.delayMinutes > 0) {
+          points.push({
+            lat: pos.lat,
+            lng: pos.lng,
+            delay: flight.delayMinutes
+          });
+        }
+      }
+    });
+    
+    return points;
+  }, [flights, airports, showHeatmap]);
 
   // Update data
   useEffect(() => {
@@ -367,11 +400,37 @@ export default function Globe3D({ flights = [], airports = [], onAirportSelect, 
       if (onFlightSelect) {
         globe.onObjectClick(obj => onFlightSelect(obj.flight));
       }
+
+      // India delay heatmap points layer
+      globe
+        .hexBinPointsData(heatmapPoints)
+        .hexBinPointLat(d => d.lat)
+        .hexBinPointLng(d => d.lng)
+        .hexBinPointWeight(d => d.delay)
+        .hexBinRadius(1.2)
+        .hexColor(() => '#FFB020')
+        .hexAltitude(d => Math.min(0.5, d.sumWeight * 0.003))
+        .hexLabel(d => `
+          <div style="
+            color:#FFB020;
+            font-family:'JetBrains Mono', monospace;
+            background:rgba(10,10,10,0.85);
+            border:1px solid rgba(255,176,32,0.25);
+            padding:6px 10px;
+            border-radius:4px;
+            font-size:11px;
+            pointer-events:none;
+          ">
+            <strong>INDIA DELAY HOTSPOT</strong><br/>
+            Flights: ${d.points.length}<br/>
+            Total Delay: ${d.sumWeight} mins
+          </div>
+        `);
     } catch (err) {
       console.error('[Globe3D] Data update failed:', err);
       setInitError(err.message || 'Globe data update error');
     }
-  }, [flights, airports, onAirportSelect, onFlightSelect]);
+  }, [flights, airports, onAirportSelect, onFlightSelect, heatmapPoints]);
 
   // Globe init error fallback (separate from top-level ErrorBoundary)
   if (initError) {
@@ -462,15 +521,41 @@ export default function Globe3D({ flights = [], airports = [], onAirportSelect, 
   }
 
   return (
-    <div
-      ref={containerRef}
-      style={{
-        width: '100%',
-        height: '100%',
-        position: 'relative',
-        overflow: 'hidden',
-        background: '#000000',
-      }}
-    />
+    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+      <div
+        ref={containerRef}
+        style={{
+          width: '100%',
+          height: '100%',
+          position: 'relative',
+          overflow: 'hidden',
+          background: '#000000',
+        }}
+      />
+      
+      {/* Heatmap Toggle Button */}
+      <button
+        onClick={() => setShowHeatmap(prev => !prev)}
+        style={{
+          position: 'absolute',
+          top: '12px',
+          left: '12px',
+          zIndex: 10,
+          background: 'rgba(0,0,0,0.85)',
+          border: `1px solid ${showHeatmap ? '#FFB020' : '#00D4FF'}`,
+          borderRadius: '4px',
+          color: showHeatmap ? '#FFB020' : '#00D4FF',
+          padding: '6px 12px',
+          fontFamily: '"JetBrains Mono", monospace',
+          fontSize: '11px',
+          letterSpacing: '0.05em',
+          cursor: 'pointer',
+          transition: 'all 0.15s ease-out',
+          boxShadow: showHeatmap ? '0 0 10px rgba(255,176,32,0.25)' : 'none',
+        }}
+      >
+        {showHeatmap ? '🔥 HEATMAP: ON (INDIA)' : '🛢️ HEATMAP: OFF'}
+      </button>
+    </div>
   );
 }
