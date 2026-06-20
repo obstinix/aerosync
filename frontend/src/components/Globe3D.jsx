@@ -38,6 +38,44 @@ function createTerminatorTexture() {
   return texture;
 }
 
+function getAircraftPosition(startLat, startLng, endLat, endLng, t) {
+  const startLatRad = (startLat * Math.PI) / 180;
+  const startLngRad = (startLng * Math.PI) / 180;
+  const endLatRad = (endLat * Math.PI) / 180;
+  const endLngRad = (endLng * Math.PI) / 180;
+  
+  const pStart = new THREE.Vector3(
+    Math.cos(startLatRad) * Math.sin(startLngRad),
+    Math.sin(startLatRad),
+    Math.cos(startLatRad) * Math.cos(startLngRad)
+  );
+  
+  const pEnd = new THREE.Vector3(
+    Math.cos(endLatRad) * Math.sin(endLngRad),
+    Math.sin(endLatRad),
+    Math.cos(endLatRad) * Math.cos(endLngRad)
+  );
+  
+  const pCurr = new THREE.Vector3().copy(pStart).lerp(pEnd, t).normalize();
+  
+  const lat = Math.asin(pCurr.y) * (180 / Math.PI);
+  const lng = Math.atan2(pCurr.x, pCurr.z) * (180 / Math.PI);
+  const alt = 0.08 * 4 * t * (1 - t); // altitude in units of radius
+  
+  return { lat, lng, alt };
+}
+
+function getBearing(lat1, lng1, lat2, lng2) {
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const lat1Rad = (lat1 * Math.PI) / 180;
+  const lat2Rad = (lat2 * Math.PI) / 180;
+  
+  const y = Math.sin(dLng) * Math.cos(lat2Rad);
+  const x = Math.cos(lat1Rad) * Math.sin(lat2Rad) - Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(dLng);
+  const bearing = Math.atan2(y, x);
+  return bearing;
+}
+
 export default function Globe3D({ flights = [], airports = [], onAirportSelect, onFlightSelect }) {
   const containerRef = useRef(null);
   const globeInstanceRef = useRef(null);
@@ -254,6 +292,80 @@ export default function Globe3D({ flights = [], airports = [], onAirportSelect, 
 
       if (onFlightSelect) {
         globe.onArcClick(arc => onFlightSelect(arc.flight));
+      }
+
+      // Map active flights to moving aircraft objects
+      const activeFlightsData = flights.map(flight => {
+        const startAirport = airports.find(a => a.iata === flight.origin || a.code === flight.origin);
+        const endAirport = airports.find(a => a.iata === flight.destination || a.code === flight.destination);
+        if (!startAirport || !endAirport) return null;
+        
+        const t = flight.progressPct || 0;
+        if (t <= 0 || t >= 1) return null;
+
+        const startLat = startAirport.lat;
+        const startLng = startAirport.lon || startAirport.lng;
+        const endLat = endAirport.lat;
+        const endLng = endAirport.lon || endAirport.lng;
+
+        const pos = getAircraftPosition(startLat, startLng, endLat, endLng, t);
+
+        return {
+          flight,
+          lat: pos.lat,
+          lng: pos.lng,
+          alt: pos.alt,
+          bearingStartLat: pos.lat,
+          bearingStartLng: pos.lng,
+          bearingEndLat: endLat,
+          bearingEndLng: endLng
+        };
+      }).filter(Boolean);
+
+      globe
+        .objectsData(activeFlightsData)
+        .objectLat(d => d.lat)
+        .objectLng(d => d.lng)
+        .objectAltitude(d => d.alt)
+        .objectThreeObject(d => {
+          const group = new THREE.Group();
+          const color = d.flight.status === 'delayed' ? '#FFB020' : d.flight.status === 'critical' ? '#FF4444' : '#00D4FF';
+          const mat = new THREE.MeshBasicMaterial({ color });
+          
+          const coneGeom = new THREE.ConeGeometry(0.8, 3, 4);
+          coneGeom.rotateX(Math.PI / 2);
+          const body = new THREE.Mesh(coneGeom, mat);
+          group.add(body);
+          
+          const wingGeom = new THREE.BoxGeometry(3, 0.1, 0.6);
+          const wing = new THREE.Mesh(wingGeom, mat);
+          group.add(wing);
+          
+          return group;
+        })
+        .objectThreeObjectUpdate((obj, d) => {
+          const bearing = getBearing(d.bearingStartLat, d.bearingStartLng, d.bearingEndLat, d.bearingEndLng);
+          obj.rotation.z = -bearing;
+        })
+        .objectLabel(d => `
+          <div style="
+            color:#F5F5F5;
+            font-family:'JetBrains Mono', monospace;
+            background:rgba(10,10,10,0.85);
+            border:1px solid rgba(0,212,255,0.25);
+            padding:6px 10px;
+            border-radius:4px;
+            font-size:11px;
+            pointer-events:none;
+          ">
+            <strong>${d.flight.id}</strong><br/>
+            Route: ${d.flight.origin} &rarr; ${d.flight.destination}<br/>
+            Progress: ${Math.round((d.flight.progressPct || 0) * 100)}%
+          </div>
+        `);
+
+      if (onFlightSelect) {
+        globe.onObjectClick(obj => onFlightSelect(obj.flight));
       }
     } catch (err) {
       console.error('[Globe3D] Data update failed:', err);
