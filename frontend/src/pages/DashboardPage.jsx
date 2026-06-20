@@ -9,6 +9,7 @@ import { FlightList } from '../components/shared/FlightList.jsx';
 import AlertLog from '../components/AlertLog.jsx';
 import ATCAudioWidget from '../components/ATCAudioWidget.jsx';
 import ErrorBoundary from '../components/ErrorBoundary.jsx';
+import AirportDrawer from '../components/AirportDrawer.jsx';
 
 const AIRCRAFT_CAPACITY = {
   B777: 20000,
@@ -22,6 +23,8 @@ export default function DashboardPage() {
   const { flights, loading, error } = useFlightData();
   const setSelectedFlight = useStore((s) => s.setSelectedFlight);
   const setSelectedHub = useStore((s) => s.setSelectedHub);
+  const selectedHub = useStore((s) => s.selectedHub);
+  const alerts = useStore((s) => s.alerts);
 
   const stats = useMemo(() => {
     if (!flights || flights.length === 0) {
@@ -43,6 +46,19 @@ export default function DashboardPage() {
 
     return { active, delayed, onTimePC, cargoUtil };
   }, [flights]);
+
+  const selectedAirport = useMemo(() => {
+    if (!selectedHub || selectedHub === 'ALL') return null;
+    const ap = AIRPORTS[selectedHub];
+    if (!ap) return null;
+    return {
+      iata: ap.code,
+      name: ap.name,
+      city: ap.city,
+      lat: ap.lat,
+      lng: ap.lng,
+    };
+  }, [selectedHub]);
 
   if (loading) {
     return (
@@ -154,6 +170,13 @@ export default function DashboardPage() {
       {/* Bottom Area: Stats Panel */}
       <StatsPanel stats={stats} flights={flights} />
       <ATCAudioWidget />
+
+      <AirportDrawer
+        airport={selectedAirport}
+        flights={flights}
+        alerts={alerts}
+        onClose={() => setSelectedHub('ALL')}
+      />
     </div>
   );
 }
