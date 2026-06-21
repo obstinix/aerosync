@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSocket } from '../providers/SocketProvider.jsx';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:9001';
 
 /**
  * Manages flight state from real Socket.IO events + REST fallback.

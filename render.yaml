@@ -19,7 +19,10 @@ services:
           name: aerosync-db
           property: connectionString
       - key: CLIENT_URL
-        value: https://aerosync-td50.onrender.com
+        fromService:
+          type: web
+          name: aerosync-frontend
+          property: host
       - key: JWT_SECRET
         generateValue: true
 
@@ -53,6 +56,11 @@ services:
     staticPublishPath: dist
     envVars:
       - key: VITE_API_URL
+        fromService:
+          type: web
+          name: aerosync-backend
+          property: host
+      - key: VITE_WS_URL
         fromService:
           type: web
           name: aerosync-backend

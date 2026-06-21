@@ -54,3 +54,8 @@ build/
 *.db-journal
 *.db-shm
 *.db-wal
+
+# Agent configs
+.agent/
+.agents/
+

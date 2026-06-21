@@ -4,7 +4,7 @@ import Papa from 'papaparse';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:9001';
 
 export default function CargoPanel() {
   const [cargoList, setCargoList] = useState([]);

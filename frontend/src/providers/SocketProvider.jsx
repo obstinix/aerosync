@@ -4,7 +4,7 @@ import useStore from '../store/useStore.js';
 
 const SocketContext = createContext(null);
 
-const WS_URL = import.meta.env.VITE_WS_URL || 'http://localhost:3001';
+const WS_URL = import.meta.env.VITE_WS_URL || 'http://localhost:9001';
 
 /**
  * Wraps the app with a Socket.IO connection.

@@ -9,7 +9,7 @@ import 'jspdf-autotable';
 import useStore from '../../store/useStore';
 import { useSandbox } from '../../contexts/SandboxContext.jsx';
 
-const AI_URL = import.meta.env.VITE_AI_URL || 'http://localhost:8000';
+const AI_URL = import.meta.env.VITE_AI_URL || 'http://localhost:9002';
 
 export default function SchedulingBoard() {
   const { flights, updateFlight, loading, error } = useFlightData();

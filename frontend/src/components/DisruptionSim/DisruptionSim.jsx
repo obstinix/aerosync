@@ -3,7 +3,7 @@ import { useSocket } from '../../providers/SocketProvider.jsx';
 import { AlertTriangle, ShieldAlert, Users, TrendingUp } from 'lucide-react';
 import DisruptionCascade from '../DisruptionCascade.jsx';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:9001';
 
 const DISRUPTION_TYPES = [
   { value: 'weather', label: 'Weather Event', icon: '⛈️' },

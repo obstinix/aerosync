@@ -28,4 +28,19 @@ try {
   execSync('npx prisma generate', { stdio: 'inherit', cwd: __dirname });
 } catch (e) {
   console.error('[Prisma Setup] Generation failed:', e.message);
+  process.exit(1);
 }
+
+// Push schema and seed if using Postgres in production or if DATABASE_URL is present
+if (usePostgres && dbUrl) {
+  try {
+    console.log('[Prisma Setup] Pushing database schema...');
+    execSync('npx prisma db push --accept-data-loss', { stdio: 'inherit', cwd: __dirname });
+    console.log('[Prisma Setup] Seeding database...');
+    execSync('npm run seed', { stdio: 'inherit', cwd: __dirname });
+  } catch (e) {
+    console.error('[Prisma Setup] Database push or seeding failed:', e.message);
+    process.exit(1);
+  }
+}
+
